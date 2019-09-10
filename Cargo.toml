@@ -1,0 +1,12 @@
+[workspace]
+
+members = [    
+    "wascap-timer",
+    "system-mgr", 
+    "component-mgr",
+    "decscloud-codec"  
+]
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"

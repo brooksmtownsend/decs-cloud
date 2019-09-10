@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package timer;
+
+// An occurrence of a timer tick, sent by the timer capability plugin to a guest module
+message TimerTick { 
+    int64 seq_no = 1; // Monotonically increasing sequence number
+    int32 elapsed_ms = 2; // Milliseconds elapsed since the last tick (may vary slightly from the requested timer interval)
+}

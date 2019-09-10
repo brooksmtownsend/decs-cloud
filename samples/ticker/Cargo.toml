@@ -1,0 +1,18 @@
+[package]
+name = "ticker"
+version = "0.1.0"
+authors = ["Kevin Hoffman <alothien@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[workspace]
+
+[dependencies]
+wascap-guest = "0.1.1"
+decscloud-codec = { path = "../../decscloud-codec" }
+
+[profile.release]
+# Optimize for small code size
+opt-level = "s"

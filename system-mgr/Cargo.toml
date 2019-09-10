@@ -1,0 +1,16 @@
+[package]
+name = "system-mgr"
+version = "0.1.0"
+authors = ["Kevin Hoffman <alothien@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wascap-guest = "0.1.1"
+#wascap-guest = {path = "../../wascap-guest" }
+decscloud-codec = { path = "../decscloud-codec" }
+serde = "1.0.99"
+serde_json = "1.0.40"
+serde_derive = "1.0.100"
