@@ -8,9 +8,8 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-wascap-guest = "0.1.1"
-#wascap-guest = {path = "../../wascap-guest" }
+waxosuit-guest = "0.3.0"
 decscloud-codec = { path = "../decscloud-codec" }
-serde = "1.0.99"
+serde = "1.0.101"
 serde_json = "1.0.40"
-serde_derive = "1.0.100"
+serde_derive = "1.0.101"

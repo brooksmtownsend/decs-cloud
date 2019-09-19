@@ -49,12 +49,6 @@ pub mod systemmgr {
         /// Frame rate, in frames per second, this system prefers getting component updates
         pub framerate: u32,
         /// List of components for which this system has registered for updates (delivered per frame)
-        pub components: Vec<String>,
-        /// Last time this system reported into the system manager
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub last_report: Option<u64>,
-        /// A human-friendly description for the last time this system reported in
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub last_report_friendly: Option<String>,
+        pub components: Vec<String>,        
     }
 }

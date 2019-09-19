@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate wascap_guest as guest;
+extern crate waxosuit_guest as guest;
 
 use decscloud_codec as decs;
 use guest::prelude::*;

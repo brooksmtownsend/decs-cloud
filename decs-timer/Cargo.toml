@@ -1,15 +1,16 @@
 [package]
-name = "wascap-timer"
+name = "decs-timer"
 version = "0.1.0"
 authors = ["Kevin Hoffman <alothien@gmail.com>"]
 edition = "2018"
+description = "Waxosuit Capability Provider for a Simple Timer"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wascap-codec = "0.1.1"
-#wascap-codec = { path = "../../wascap-codec" }
+waxosuit-codec = "0.2.0"
+decscloud-codec = { path = "../decscloud-codec" }
 log = "0.4.8"
 env_logger = "0.6"
 crossbeam-channel = "0.3.9"
@@ -18,4 +19,3 @@ crossbeam-utils = "^0.6.6"
 prost-types = "0.5.0"
 natsclient = "0.0.5"
 prost = "0.5.0"
-decscloud-codec = { path = "../decscloud-codec" }

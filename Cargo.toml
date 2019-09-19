@@ -1,10 +1,10 @@
 [workspace]
 
 members = [    
-    "wascap-timer",
+    "decs-timer",
     "system-mgr", 
     "component-mgr",
-    "decscloud-codec"  
+    "decscloud-codec"    
 ]
 
 [profile.release]

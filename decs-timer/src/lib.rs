@@ -1,5 +1,5 @@
 #[macro_use]
-extern crate wascap_codec;
+extern crate waxosuit_codec;
 
 #[macro_use]
 extern crate log;
@@ -12,8 +12,8 @@ use std::error::Error;
 use std::sync::Arc;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
-use wascap_codec as codec;
-use wascap_codec::capabilities::{CapabilityProvider, Dispatcher, NullDispatcher};
+use waxosuit_codec as codec;
+use codec::capabilities::{CapabilityProvider, Dispatcher, NullDispatcher};
 
 capability_provider!(TimerProvider, TimerProvider::new);
 

@@ -15,7 +15,8 @@
 
 FROM waxosuit/waxosuit
 
-COPY ./target/wasm32-unknown-unknown/release/system_mgr_s.wasm /
+COPY ../target/wasm32-unknown-unknown/release/system_mgr_s.wasm /
+COPY ../target/release/libdecs_timer.so /caps
 
 EXPOSE 8080
 

@@ -363,7 +363,7 @@ name = "ticker"
 version = "0.1.0"
 dependencies = [
  "decscloud-codec 0.1.0",
- "wascap-guest 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wascap-guest 0.1.1",
 ]
 
 [[package]]
@@ -398,7 +398,6 @@ dependencies = [
 [[package]]
 name = "wascap-guest"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "prost 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost-types 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -494,7 +493,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc72304796d0818e357ead4e000d19c9c174ab23dc11093ac919054d20a6a7fc"
 "checksum unicode-xid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
 "checksum wascap-codec 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4244f32f930595e9edf100273ad7671e59069fa9b5362c5e988e55639caa12ae"
-"checksum wascap-guest 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b195ff9b8ab55e6ade88122d70e451fa27b99e519c50ac02b575e48198a38a44"
 "checksum wasi 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b89c3ce4ce14bdc6fb6beaf9ec7928ca331de5df7e5ea278375642a2f478570d"
 "checksum which 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b57acb10231b9493c8472b20cb57317d0679a49e0bdbee44b3b803a6473af164"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"

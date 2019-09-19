@@ -23,8 +23,8 @@ bench:
 	@$(CARGO) bench
 
 build:
-	@$(CARGO) build
-	wascap sign ../target/wasm32-unknown-unknown/debug/system_mgr.wasm ../target/wasm32-unknown-unknown/debug/system_mgr_s.wasm -a ./.keys/account.nk -m ./.keys/module.nk -s -g -k
+	@$(CARGO) build	
+	wascap sign ../target/wasm32-unknown-unknown/debug/system_mgr.wasm ../target/wasm32-unknown-unknown/debug/system_mgr_s.wasm -a ./.keys/account.nk -m ./.keys/module.nk -s -g -k -c decs:timer
 
 check:
 	@$(CARGO) check
@@ -42,8 +42,8 @@ update:
 	@$(CARGO) update
 
 release:
-	@$(CARGO) build --release
-	wascap sign ../target/wasm32-unknown-unknown/release/system_mgr.wasm ../target/wasm32-unknown-unknown/release/system_mgr_s.wasm -a ./.keys/account.nk -m ./.keys/module.nk -s -g -k
+	@$(CARGO) build --release	
+	wascap sign ../target/wasm32-unknown-unknown/release/system_mgr.wasm ../target/wasm32-unknown-unknown/release/system_mgr_s.wasm -a ./.keys/account.nk -m ./.keys/module.nk -s -g -k -c decs:timer
 
 docker: release
 	docker build -t system-mgr .
