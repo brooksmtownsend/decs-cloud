@@ -1,11 +1,37 @@
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate serde_json;
+
 pub mod gateway {
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct ResourceIdentifier {
         /// The resource ID
         pub rid: String,
+    }
+
+    pub fn model_result(model: serde_json::Value) -> serde_json::Value {
+        json!({
+            "result" :{
+                "model" : model
+            }
+        })
+    }
+
+    pub fn error_not_found(msg: &str) -> serde_json::Value {        
+        json!({
+            "error": {
+                "code": "system.notFound",
+                "message": msg
+            }
+        })
+    }
+
+    pub fn success_response() -> serde_json::Value {        
+        json!({
+            "result": null 
+        })
     }
 }
     

@@ -24,7 +24,7 @@ bench:
 
 build:
 	@$(CARGO) build
-	wascap sign target/wasm32-unknown-unknown/debug/component_mgr.wasm target/wasm32-unknown-unknown/debug/component_mgr_s.wasm -a ./.keys/account.nk -m ./.keys/module.nk -s
+	wascap sign ../target/wasm32-unknown-unknown/debug/component_mgr.wasm ../target/wasm32-unknown-unknown/debug/component_mgr_s.wasm -a ./.keys/account.nk -m ./.keys/module.nk -s -g -k
 
 check:
 	@$(CARGO) check
@@ -43,7 +43,7 @@ update:
 
 release:
 	@$(CARGO) build --release
-	wascap sign target/wasm32-unknown-unknown/release/component_mgr.wasm target/wasm32-unknown-unknown/release/component_mgr_s.wasm -a ./.keys/account.nk -m ./.keys/module.nk -s
+	wascap sign ../target/wasm32-unknown-unknown/release/component_mgr.wasm ../target/wasm32-unknown-unknown/release/component_mgr_s.wasm -a ./.keys/account.nk -m ./.keys/module.nk -s -g -k
 
 docker: release
 	docker build -t component-mgr .

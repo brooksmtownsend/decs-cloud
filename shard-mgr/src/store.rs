@@ -14,7 +14,6 @@ pub(crate) fn add_shard(ctx: &CapabilitiesContext, shard: &codec::shard::Shard) 
     let shard_json = serde_json::to_string(shard)?;
     ctx.kv().set(&shard_key, &shard_json, None)?;
     Ok(())
-
 }
 
 pub(crate) fn get_shard_details(
