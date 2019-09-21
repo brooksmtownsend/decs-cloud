@@ -1,6 +1,15 @@
 #[macro_use]
 extern crate serde_derive;
 
+pub mod gateway {
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct ResourceIdentifier {
+        /// The resource ID
+        pub rid: String,
+    }
+}
+    
+
 pub mod timer {
     include!(concat!(env!("OUT_DIR"), "/timer.rs"));
 
@@ -11,6 +20,25 @@ pub mod timer {
     impl Into<TimerTick> for &[u8] {
         fn into(self) -> TimerTick {
             TimerTick::decode(self).unwrap()
+        }
+    }
+}
+
+pub mod shard {
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct Shard {
+        pub name: String,
+        pub capacity: u32,
+        pub current: u32
+    }
+
+    impl Shard {
+        pub fn the_void() -> Shard {
+            Shard {
+                name: "the_void".to_string(),
+                capacity: 1_000,
+                current: 0
+            }
         }
     }
 }
@@ -50,5 +78,5 @@ pub mod systemmgr {
         pub framerate: u32,
         /// List of components for which this system has registered for updates (delivered per frame)
         pub components: Vec<String>,        
-    }
+    }    
 }

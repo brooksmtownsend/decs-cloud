@@ -12,27 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// The system manager performs several main functions
-/// 1. On appropriate intervals, publish a msg with the component value(s) on the topic `system.[shard].[system].frames`
-/// 2. Periodically publishes messages on `system.registry`, to which systems must respond with their preferred frame rate and components of interest.
+//! # Shard Manager
+//! 
+//! The shard manager is responsible for typical CRUD activities
+//! related to shards. Query is exposed via RES protocol
 extern crate waxosuit_guest as guest;
 
 #[macro_use]
 extern crate serde_json;
 
-use decscloud_codec as codec;
 use guest::prelude::*;
 
 mod msg;
-mod rest;
 mod store;
 
 call_handler!(handle_call);
 
 pub fn handle_call(ctx: &CapabilitiesContext, operation: &str, msg: &[u8]) -> CallResult {
-    match operation {
-        http::OP_HANDLE_REQUEST => rest::handle_http(ctx, msg),
-        codec::timer::OP_TIMER_TICK => msg::handle_timer(ctx, msg),
+    match operation {        
         messaging::OP_DELIVER_MESSAGE => msg::handle_message(ctx, msg),
         core::OP_HEALTH_REQUEST => Ok(vec![]),
         _ => Err("bad dispatch".into()),

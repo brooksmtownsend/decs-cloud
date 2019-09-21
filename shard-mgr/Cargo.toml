@@ -1,9 +1,9 @@
 [package]
-name = "system-mgr"
+name = "shard-mgr"
 version = "0.1.0"
 authors = ["Kevin Hoffman <alothien@gmail.com>"]
 edition = "2018"
-description = "dECS Cloud System Manager"
+description = "dECS Cloud Shard Manager"
 
 [lib]
 crate-type = ["cdylib"]

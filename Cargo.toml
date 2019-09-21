@@ -3,6 +3,7 @@
 members = [    
     "decs-timer",
     "system-mgr", 
+    "shard-mgr",
     "component-mgr",
     "decscloud-codec"    
 ]

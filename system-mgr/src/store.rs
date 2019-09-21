@@ -42,6 +42,10 @@ pub(crate) fn get_all_systems(
     }
 }
 
+pub(crate) fn get_systems(ctx: &CapabilitiesContext) -> Result<Vec<String>> {
+    ctx.kv().list_range(SYSTEMS_KEY, 0, 1000)
+}
+
 pub(crate) fn get_system_list(
     ctx: &CapabilitiesContext,
     systems: Vec<String>,
