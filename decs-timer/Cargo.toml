@@ -9,7 +9,7 @@ description = "Waxosuit Capability Provider for a Simple Timer"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-waxosuit-codec = "0.2.0"
+waxosuit-codec = "0.2.1"
 decscloud-codec = { path = "../decscloud-codec" }
 log = "0.4.8"
 env_logger = "0.6"

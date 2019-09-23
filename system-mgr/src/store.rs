@@ -81,9 +81,9 @@ pub(crate) fn get_system_details(
 
 /// Retrieves a list of all entities in a given shard that have a value for each
 /// of the components indicated.
-pub(crate) fn get_entities_for_component_set(_ctx: &CapabilitiesContext, _shard: &str, _components: &[String]) -> 
+pub(crate) fn get_entities_for_component_set(ctx: &CapabilitiesContext, shard: &str, components: &[String]) -> 
 std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    // TODO - implement query
-    // In redis this will look like SINTER decs:(shard):(component):entities
-    Ok(vec![])
+
+    let ek: Vec<String> = components.iter().map(|c| format!("decs:{}:{}:entities", shard, c)).collect(); 
+    ctx.kv().set_intersect(ek.as_slice()).map_err(|e| e.into())    
 }

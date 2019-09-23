@@ -9,7 +9,7 @@ description = "dECS Cloud System Manager"
 crate-type = ["cdylib"]
 
 [dependencies]
-waxosuit-guest = "0.3.0"
+waxosuit-guest = "0.3.2"
 decscloud-codec = { path = "../decscloud-codec" }
 serde = "1.0.101"
 serde_json = "1.0.40"
