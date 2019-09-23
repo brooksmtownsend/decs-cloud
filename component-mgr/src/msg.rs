@@ -93,7 +93,7 @@ fn handle_single_get(
 fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let tokens: Vec<&str> = msg.subject.split('.').collect();
     let comp = extract_model_from_set(&msg.body)?;
-    
+
     store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
     ctx.msg().publish(&msg.reply_to, None,
         &serde_json::to_vec(&codec::gateway::success_response())?)?;
@@ -125,22 +125,3 @@ mod test {
     }
 }
 
-/*
-/// Handles messages published on the topic `component.[shard].[entity].[name].[action]`
-fn handle_msg(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
-    let tokens: Vec<&str> = msg.subject.split('.').collect();
-    if tokens.len() != 5 && tokens[0] != "component" {
-        Err("poorly formed subject".into())
-    } else {
-        let (shard, entity, compname, op) = (tokens[1], tokens[2], tokens[3], tokens[4]);
-        let key = format!("comp:{}:{}:{}", shard, entity, compname);
-        let val = std::str::from_utf8(&msg.body)?;
-        match op {
-            "put" => ctx.kv().set(&key, val, None)?,
-            "del" => ctx.kv().del_key(&key)?,
-            _ => return Err("Invalid component operation".into()),
-        };
-
-        Ok(vec![])
-    }
-}*/

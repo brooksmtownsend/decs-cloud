@@ -4,6 +4,7 @@ members = [
     "decs-timer",
     "system-mgr", 
     "shard-mgr",
+    "game-loop",
     "component-mgr",
     "decscloud-codec"    
 ]

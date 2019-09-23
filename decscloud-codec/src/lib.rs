@@ -48,7 +48,25 @@ pub mod timer {
             TimerTick::decode(self).unwrap()
         }
     }
+
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct GameLoopTick {
+        pub seq_no: u64,
+        pub elapsed_ms: u32,
+        pub shard: String,
+    }
+
+    impl GameLoopTick {
+        pub fn from_tick(source: &TimerTick, shard: &str) -> Self {
+            GameLoopTick {
+                seq_no: source.seq_no as _,
+                elapsed_ms: source.elapsed_ms as _,
+                shard: shard.to_string(),
+            }
+        }
+    }    
 }
+
 
 pub mod shard {
     #[derive(Debug, Serialize, Deserialize, Default)]
