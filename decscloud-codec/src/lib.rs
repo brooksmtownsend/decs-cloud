@@ -88,20 +88,16 @@ pub mod shard {
 }
 
 pub mod systemmgr {
-    pub struct ComponentFrame {
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct EntityFrame {
         /// Monotonically increasing sequence number
-        pub seq_no: i64,
+        pub seq_no: u64,
         /// Elapsed time (ms, approx) since the last frame
-        pub elapsed_ms: i32,
-        /// Id of the space in which this frame takes place
-        pub space: String,
+        pub elapsed_ms: u32,
+        /// Id of the shard in which this frame takes place
+        pub shard: String,
         /// Entity ID to which the components in the vector belong
-        pub entity_id: String,
-        /// List of components corresponding to the system's interest list. For example, if `physics` is
-        /// interested in `velocity` and `acceleration`, then every frame published to `comp.[space].physics.frames`
-        /// will contain a 2-element vector for the entity. If a system requests two components,
-        /// then it will _only_ receive a frame for any entity that has _both_ component values.
-        pub component_values: Vec<ComponentValue>,
+        pub entity_id: String,        
     }
 
     /// Represents a single instance of a component value. For example, player `bob` in the `default`
