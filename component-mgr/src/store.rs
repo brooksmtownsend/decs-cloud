@@ -8,9 +8,9 @@ pub(crate) fn put_component(
     component: &str,
 ) -> Result<()> {
     let key = component_key(tokens);
-    let _entkey = component_entities_key(tokens);
+    let entkey = component_entities_key(tokens);
 
-    // ctx.kv().set_add(entkey, entity_id(tokens))?;
+    ctx.kv().set_add(&entkey, &entity_id(tokens))?;
     ctx.kv().set(&key, component, None)
 }
 
@@ -45,11 +45,9 @@ fn component_entities_key(tokens: &[&str]) -> String {
     format!("decs:{}:{}:entities", tokens[3], tokens[5])
 }
 
-/*
- TODO - uncomment this after we have set operations in the KV store
 fn entity_id(tokens: &[&str]) -> String {
     tokens[4].to_string()
-} */
+}
 
 
 #[cfg(test)]
