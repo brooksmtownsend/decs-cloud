@@ -18,8 +18,7 @@ pub(crate) fn handle_message(
     if let Some(msg) = msg {
         if msg.subject.starts_with(GET_COMPONENT_PREFIX) {
             handle_get(&ctx, &msg)
-        } else if msg.subject.starts_with(SET_COMPONENT_PREFIX) &&
-                  msg.subject.ends_with("set") {
+        } else if msg.subject.starts_with(SET_COMPONENT_PREFIX) && msg.subject.ends_with("set") {
             handle_set(&ctx, &msg)
         } else if msg.subject.starts_with(GW_ACCESS_PREFIX) {
             handle_access(&ctx, &msg)
@@ -82,7 +81,7 @@ fn handle_single_get(
     }
 }
 
-/// When the RES protocol invokes a set, the payload looks as follows: 
+/// When the RES protocol invokes a set, the payload looks as follows:
 /// ```
 /// {
 ///   "params" : ... the model object ..,
@@ -95,8 +94,13 @@ fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> Call
     let comp = extract_model_from_set(&msg.body)?;
 
     store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
-    ctx.msg().publish(&msg.reply_to, None,
-        &serde_json::to_vec(&codec::gateway::success_response())?)?;
+    if !msg.reply_to.is_empty() {
+        ctx.msg().publish(
+            &msg.reply_to,
+            None,
+            &serde_json::to_vec(&codec::gateway::success_response())?,
+        )?;
+    };
     Ok(vec![])
 }
 
@@ -124,4 +128,3 @@ mod test {
         assert_eq!(val["mag"], 20);
     }
 }
-
