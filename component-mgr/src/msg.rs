@@ -97,8 +97,7 @@ fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> Call
     let put_action = store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
     match put_action {
         store::PutAction::CollectionAdd(idx) => publish_collection_add(ctx, &tokens, idx)?,
-        store::PutAction::ModelChanged => publish_model_change(ctx,comp, &tokens)?,
-        store::PutAction::None => {}
+        store::PutAction::ModelChanged => publish_model_change(ctx,comp, &tokens)?,        
     };
     if !msg.reply_to.is_empty() {
         ctx.msg().publish(
