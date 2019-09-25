@@ -34,7 +34,7 @@ fn handle_access(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> C
     let result = json!({
         "result" : {
             "get" : true,
-            "call" : "set"
+            "call" : "*"
         }
     });
     ctx.msg()
@@ -114,8 +114,8 @@ fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> Call
 
 fn publish_collection_add(ctx: &CapabilitiesContext, tokens: &[&str], idx: usize) -> Result<()> {
     //decs.components.{shard-id}.{entity-id}
-    let subject = format!("event.decs.components.{}.{}.add", tokens[2], tokens[3]);
-    let item = format!("decs.components.{}.{}.{}", tokens[2], tokens[3], tokens[4]);
+    let subject = format!("event.decs.components.{}.{}.add", tokens[3], tokens[4]);
+    let item = format!("decs.components.{}.{}.{}", tokens[3], tokens[4], tokens[5]);
 
     let rid = decs::gateway::ResourceIdentifier { rid: item };
     let out = json!({
@@ -133,7 +133,7 @@ fn publish_model_change(
     comp: serde_json::Value,
     tokens: &[&str],
 ) -> Result<()> {
-    let item = format!("decs.components.{}.{}.{}", tokens[2], tokens[3], tokens[4]);
+    let item = format!("decs.components.{}.{}.{}", tokens[3], tokens[4], tokens[5]);
     let subject = format!("event.{}.change", item);
 
     let out = json!({ "values": comp });
