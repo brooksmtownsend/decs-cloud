@@ -24,14 +24,12 @@ use decscloud_codec as codec;
 use guest::prelude::*;
 
 mod msg;
-mod rest;
 mod store;
 
 call_handler!(handle_call);
 
 pub fn handle_call(ctx: &CapabilitiesContext, operation: &str, msg: &[u8]) -> CallResult {
-    match operation {
-        http::OP_HANDLE_REQUEST => rest::handle_http(ctx, msg),
+    match operation {        
         codec::timer::OP_TIMER_TICK => msg::handle_timer(ctx, msg),
         messaging::OP_DELIVER_MESSAGE => msg::handle_message(ctx, msg),
         core::OP_HEALTH_REQUEST => Ok(vec![]),

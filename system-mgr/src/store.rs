@@ -21,27 +21,6 @@ pub(crate) fn put_system(
     Ok(())
 }
 
-pub(crate) fn get_system(
-    ctx: &CapabilitiesContext,
-    system: &str,
-) -> std::result::Result<http::Response, Box<dyn std::error::Error>> {
-    get_system_details(ctx, system).map(|s| http::Response::json(s, 200, "OK"))
-}
-
-pub(crate) fn get_all_systems(
-    ctx: &CapabilitiesContext,
-) -> std::result::Result<http::Response, Box<dyn std::error::Error>> {
-    match ctx.kv().list_range(SYSTEMS_KEY, 0, 1000) {
-        Ok(systems_list) => {
-            get_system_list(ctx, systems_list).map(|s| http::Response::json(s, 200, "OK"))
-        }
-        Err(e) => Ok(http::Response::internal_server_error(&format!(
-            "Failed to retrieve systems: {}",
-            e
-        ))),
-    }
-}
-
 pub(crate) fn get_systems(ctx: &CapabilitiesContext) -> Result<Vec<String>> {
     ctx.kv().list_range(SYSTEMS_KEY, 0, 1000)
 }
