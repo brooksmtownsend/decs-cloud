@@ -1,17 +1,37 @@
 use guest::prelude::*;
 
+pub enum PutAction {
+    None,
+    CollectionAdd(usize),
+    ModelChanged
+}
+
 pub(crate) const NO_SUCH_COMPONENT: &str = "no such component";
 
 pub(crate) fn put_component(
     ctx: &CapabilitiesContext,
     tokens: &[&str],
     component: &str,
-) -> Result<()> {
+) -> Result<PutAction> {
     let key = component_key(tokens);
     let entkey = component_entities_key(tokens);
 
+    let put_action = if ctx.kv().exists(&entkey)? {                    
+        // model was in collection but changed, publish model change
+        let existing = ctx.kv().get(&key)?.unwrap();
+        if existing.trim() == component.trim() {
+            PutAction::None // new and old components are the same
+        } else {
+            PutAction::ModelChanged 
+        }        
+    } else {
+        let members = ctx.kv().set_members(&entkey)?;
+        PutAction::CollectionAdd(members.len()) // new item in collection, publish collection add event
+    };
+
     ctx.kv().set_add(&entkey, &entity_id(tokens))?;
-    ctx.kv().set(&key, component, None)
+    ctx.kv().set(&key, component, None)?;
+    Ok(put_action)
 }
 
 pub(crate) fn get_component(
@@ -33,7 +53,7 @@ pub(crate) fn get_component(
 }
 
 /// Extract the key-value store key for a single component from either the set or get RES protocol subject
-fn component_key(tokens: &[&str]) -> String {
+pub(crate) fn component_key(tokens: &[&str]) -> String {
     tokens[1..=5].join(":")
 }
 
@@ -41,11 +61,11 @@ fn component_key(tokens: &[&str]) -> String {
 /// component associated with them.
 /// decs:{shard}:{component}:entities
 /// Subject looks like : call.decs.components.the_void.abc1234.position.set
-fn component_entities_key(tokens: &[&str]) -> String {    
+pub(crate) fn component_entities_key(tokens: &[&str]) -> String {    
     format!("decs:{}:{}:entities", tokens[3], tokens[5])
 }
 
-fn entity_id(tokens: &[&str]) -> String {
+pub(crate) fn entity_id(tokens: &[&str]) -> String {
     tokens[4].to_string()
 }
 

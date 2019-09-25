@@ -21,6 +21,7 @@
 //! decs.components.{shard-id}.{entity-id} - get (collection)
 //!
 extern crate waxosuit_guest as guest;
+extern crate decscloud_codec as decs;
 
 use guest::prelude::*;
 

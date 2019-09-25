@@ -12,7 +12,7 @@ pub(crate) fn put_system(
     system: &codec::systemmgr::System,
 ) -> guest::wapc::Result<()> {
     let system_json = serde_json::to_string(system)?;
-    ctx.kv().list_add(SYSTEMS_KEY, &system.name)?;
+    ctx.kv().set_add(SYSTEMS_KEY, &system.name)?;
     ctx.kv().set(
         &format!("system:{}", system.name),
         &system_json,
@@ -22,7 +22,7 @@ pub(crate) fn put_system(
 }
 
 pub(crate) fn get_systems(ctx: &CapabilitiesContext) -> Result<Vec<String>> {
-    ctx.kv().list_range(SYSTEMS_KEY, 0, 1000)
+    ctx.kv().set_members(SYSTEMS_KEY)
 }
 
 pub(crate) fn get_system_list(
