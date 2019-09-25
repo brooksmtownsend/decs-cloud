@@ -93,11 +93,14 @@ fn handle_single_get(
 fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let tokens: Vec<&str> = msg.subject.split('.').collect();
     let comp = extract_model_from_set(&msg.body)?;
-    ctx.log(&format!("Handling set request: {}, reply-to: {}", msg.subject, msg.reply_to));
+    ctx.log(&format!(
+        "Handling set request: {}, reply-to: {}",
+        msg.subject, msg.reply_to
+    ));
     let put_action = store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
     match put_action {
         store::PutAction::CollectionAdd(idx) => publish_collection_add(ctx, &tokens, idx)?,
-        store::PutAction::ModelChanged => publish_model_change(ctx,comp, &tokens)?,        
+        store::PutAction::ModelChanged => publish_model_change(ctx, comp, &tokens)?,
     };
     if !msg.reply_to.is_empty() {
         ctx.msg().publish(
@@ -105,7 +108,7 @@ fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> Call
             None,
             &serde_json::to_vec(&codec::gateway::success_response())?,
         )?;
-    };    
+    };
     Ok(vec![])
 }
 
@@ -114,23 +117,29 @@ fn publish_collection_add(ctx: &CapabilitiesContext, tokens: &[&str], idx: usize
     let subject = format!("event.decs.components.{}.{}.add", tokens[2], tokens[3]);
     let item = format!("decs.components.{}.{}.{}", tokens[2], tokens[3], tokens[4]);
 
-    let rid = decs::gateway::ResourceIdentifier{ rid: item };
+    let rid = decs::gateway::ResourceIdentifier { rid: item };
     let out = json!({
         "value" : rid,
         "idx": idx
-    });    
-    ctx.msg().publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    });
+    ctx.log(&format!("Publishing Collection Add, subject: {}", subject));
+    ctx.msg()
+        .publish(&subject, None, &serde_json::to_vec(&out)?)?;
     Ok(())
 }
 
-fn publish_model_change(ctx: &CapabilitiesContext, comp: serde_json::Value, tokens: &[&str]) -> Result<()> {
+fn publish_model_change(
+    ctx: &CapabilitiesContext,
+    comp: serde_json::Value,
+    tokens: &[&str],
+) -> Result<()> {
     let item = format!("decs.components.{}.{}.{}", tokens[2], tokens[3], tokens[4]);
     let subject = format!("event.{}.change", item);
 
-    let out = json!({
-        "values": comp
-    });
-    ctx.msg().publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    let out = json!({ "values": comp });
+    ctx.log(&format!("Publishing Model Change, subject: {}", subject));
+    ctx.msg()
+        .publish(&subject, None, &serde_json::to_vec(&out)?)?;
     Ok(())
 }
 
