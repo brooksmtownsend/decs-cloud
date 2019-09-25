@@ -1,9 +1,8 @@
 use guest::prelude::*;
 
 pub enum PutAction {
-    None,
     CollectionAdd(usize),
-    ModelChanged
+    ModelChanged,
 }
 
 pub(crate) const NO_SUCH_COMPONENT: &str = "no such component";
@@ -16,14 +15,9 @@ pub(crate) fn put_component(
     let key = component_key(tokens);
     let entkey = component_entities_key(tokens);
 
-    let put_action = if ctx.kv().exists(&key)? {                            
-        let existing = ctx.kv().get(&key)?.unwrap();
-        if existing.trim() == component.trim() {
-            PutAction::None // new and old components are the same
-        } else {
-            PutAction::ModelChanged 
-        }        
-    } else {        
+    let put_action = if ctx.kv().exists(&key)? {
+        PutAction::ModelChanged
+    } else {
         PutAction::CollectionAdd(0) // new item in the components collection, publish collection add event
     };
 
@@ -59,7 +53,7 @@ pub(crate) fn component_key(tokens: &[&str]) -> String {
 /// component associated with them.
 /// decs:{shard}:{component}:entities
 /// Subject looks like : call.decs.components.the_void.abc1234.position.set
-pub(crate) fn component_entities_key(tokens: &[&str]) -> String {    
+pub(crate) fn component_entities_key(tokens: &[&str]) -> String {
     format!("decs:{}:{}:entities", tokens[3], tokens[5])
 }
 
@@ -67,10 +61,9 @@ pub(crate) fn entity_id(tokens: &[&str]) -> String {
     tokens[4].to_string()
 }
 
-
 #[cfg(test)]
 mod test {
-    use super::{component_key, component_entities_key};
+    use super::{component_entities_key, component_key};
 
     #[test]
     fn test_entities_key_extraction() {
