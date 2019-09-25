@@ -43,6 +43,7 @@ fn handle_access(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> C
 }
 
 fn handle_get(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
+    ctx.log(&format!("Handling get request: {}", msg.subject));
     let tokens: Vec<&str> = msg.subject.split('.').collect();
     if tokens.len() == 6 {
         handle_single_get(ctx, msg, &tokens)
@@ -92,16 +93,46 @@ fn handle_single_get(
 fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let tokens: Vec<&str> = msg.subject.split('.').collect();
     let comp = extract_model_from_set(&msg.body)?;
-
-    store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
+    ctx.log(&format!("Handling set request: {}, reply-to: {}", msg.subject, msg.reply_to));
+    let put_action = store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
+    match put_action {
+        store::PutAction::CollectionAdd(idx) => publish_collection_add(ctx, &tokens, idx)?,
+        store::PutAction::ModelChanged => publish_model_change(ctx,comp, &tokens)?,
+        store::PutAction::None => {}
+    };
     if !msg.reply_to.is_empty() {
         ctx.msg().publish(
             &msg.reply_to,
             None,
             &serde_json::to_vec(&codec::gateway::success_response())?,
         )?;
-    };
+    };    
     Ok(vec![])
+}
+
+fn publish_collection_add(ctx: &CapabilitiesContext, tokens: &[&str], idx: usize) -> Result<()> {
+    //decs.components.{shard-id}.{entity-id}
+    let subject = format!("event.decs.components.{}.{}.add", tokens[2], tokens[3]);
+    let item = format!("decs.components.{}.{}.{}", tokens[2], tokens[3], tokens[4]);
+
+    let rid = decs::gateway::ResourceIdentifier{ rid: item };
+    let out = json!({
+        "value" : rid,
+        "idx": idx
+    });    
+    ctx.msg().publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    Ok(())
+}
+
+fn publish_model_change(ctx: &CapabilitiesContext, comp: serde_json::Value, tokens: &[&str]) -> Result<()> {
+    let item = format!("decs.components.{}.{}.{}", tokens[2], tokens[3], tokens[4]);
+    let subject = format!("event.{}.change", item);
+
+    let out = json!({
+        "values": comp
+    });
+    ctx.msg().publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    Ok(())
 }
 
 fn extract_model_from_set(body: &[u8]) -> Result<serde_json::Value> {
