@@ -16,20 +16,18 @@ pub(crate) fn put_component(
     let key = component_key(tokens);
     let entkey = component_entities_key(tokens);
 
-    let put_action = if ctx.kv().exists(&entkey)? {                    
-        // model was in collection but changed, publish model change
+    let put_action = if ctx.kv().exists(&key)? {                            
         let existing = ctx.kv().get(&key)?.unwrap();
         if existing.trim() == component.trim() {
             PutAction::None // new and old components are the same
         } else {
             PutAction::ModelChanged 
         }        
-    } else {
-        let members = ctx.kv().set_members(&entkey)?;
-        PutAction::CollectionAdd(members.len()) // new item in collection, publish collection add event
+    } else {        
+        PutAction::CollectionAdd(0) // new item in the components collection, publish collection add event
     };
 
-    ctx.kv().set_add(&entkey, &entity_id(tokens))?;
+    ctx.kv().set_add(&entkey, &entity_id(tokens))?; // add entity to list of entities with a given component
     ctx.kv().set(&key, component, None)?;
     Ok(put_action)
 }

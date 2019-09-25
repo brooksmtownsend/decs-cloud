@@ -112,7 +112,7 @@ fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> Call
 
 fn publish_collection_add(ctx: &CapabilitiesContext, tokens: &[&str], idx: usize) -> Result<()> {
     //decs.components.{shard-id}.{entity-id}
-    let subject = format!("event.decs.components.{}.{}", tokens[2], tokens[3]);
+    let subject = format!("event.decs.components.{}.{}.add", tokens[2], tokens[3]);
     let item = format!("decs.components.{}.{}.{}", tokens[2], tokens[3], tokens[4]);
 
     let rid = decs::gateway::ResourceIdentifier{ rid: item };
