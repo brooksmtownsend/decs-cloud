@@ -85,7 +85,7 @@ fn handle_gameloop(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) ->
         for entity in entities.iter() {
             let cf = codec::systemmgr::EntityFrame {
                 seq_no: gtick.seq_no,
-                elapsed_ms: gtick.elapsed_ms,
+                elapsed_ms: gtick.elapsed_ms * system_modulus(system.framerate, gtick.elapsed_ms),
                 shard: shard.to_string(),
                 entity_id: entity.to_string(),
             };
