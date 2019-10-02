@@ -32,7 +32,7 @@ pub fn handle_message(
             handle_get_single(&ctx, &msg)?;
         } else if msg.subject.starts_with(GW_ACCESS_PREFIX) {
             handle_access(&ctx, &msg)?;
-        } else if msg.subject.starts_with(GW_SET_PREFIX) {
+        } else if msg.subject.starts_with(GW_SET_PREFIX) && msg.subject.ends_with("set") {
             handle_set(&ctx, &msg)?;
         }
         Ok(vec![])
@@ -103,7 +103,8 @@ fn extract_shard_from_set(body: &[u8]) -> Result<Shard> {
 fn handle_access(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let result = json!({
         "result" : {
-            "get" : true
+            "get" : true,
+            "call" : "*"
         }
     });
     ctx.msg()
