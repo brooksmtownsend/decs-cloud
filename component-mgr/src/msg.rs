@@ -133,11 +133,7 @@ fn publish_model_change(
     comp: serde_json::Value,
     tokens: &[&str],
 ) -> Result<()> {
-<<<<<<< HEAD
-    let item = format!("decs.components.{}.{}.{}", tokens[2], tokens[3], tokens[4]);
-=======
     let item = format!("decs.components.{}.{}.{}", tokens[3], tokens[4], tokens[5]);
->>>>>>> 46b96e81549eeaab3e82358900ac41ad4a7ba147
     let subject = format!("event.{}.change", item);
 
     let out = json!({ "values": comp });
