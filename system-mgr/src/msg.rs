@@ -10,6 +10,8 @@
 
 use crate::store;
 use decscloud_codec as codec;
+use decscloud_codec::gateway::ResourceIdentifier;
+use decscloud_codec::systemmgr::System;
 use guest::prelude::*;
 
 const PING_EVERY_TICKS: i64 = 200;
@@ -30,7 +32,6 @@ pub fn handle_timer(
     if tick.seq_no % PING_EVERY_TICKS == 0 {
         emit_ping(ctx)
     } else {
-        // publish_frame(...)
         Ok(vec![])
     }
 }
@@ -65,7 +66,7 @@ pub fn handle_message(
 }
 
 // Upon receipt of a game loop tick, the system manager must
-//   for each discovered system: 
+//   for each discovered system:
 //     determine if it is the right time to emit a message for the given system (based on system FPS desire)
 //     emit an entity frame message for each entity that has all of that system's components
 //
@@ -81,7 +82,8 @@ fn handle_gameloop(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) ->
         if !should_publish(system.framerate, gtick.elapsed_ms, gtick.seq_no) {
             continue;
         }
-        let entities = store::get_entities_for_component_set(ctx, &shard, system.components.as_slice())?;
+        let entities =
+            store::get_entities_for_component_set(ctx, &shard, system.components.as_slice())?;
         for entity in entities.iter() {
             let cf = codec::systemmgr::EntityFrame {
                 seq_no: gtick.seq_no,
@@ -90,18 +92,22 @@ fn handle_gameloop(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) ->
                 entity_id: entity.to_string(),
             };
             let subject = format!("decs.frames.{}.{}", shard, system.name);
-            ctx.msg().publish(&subject, None, &serde_json::to_vec(&cf)?)?;
+            ctx.msg()
+                .publish(&subject, None, &serde_json::to_vec(&cf)?)?;
         }
     }
-    
 
     Ok(vec![])
 }
 
 fn handle_registration(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let system: codec::systemmgr::System = serde_json::from_slice(&msg.body)?;
-    store::put_system(ctx, &system)?;
-
+    let existed = store::put_system(ctx, &system)?;
+    if !existed {
+        publish_collection_add(ctx, &system)?;
+    } else {
+        publish_model_change(ctx, &system)?;
+    }
     Ok(vec![])
 }
 
@@ -146,7 +152,8 @@ fn get_collection(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> 
 
 fn get_single(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let tokens: Vec<&str> = msg.subject.split('.').collect();
-    if tokens.len() != 4 { // get.decs.system.xxx
+    if tokens.len() != 4 {
+        // get.decs.system.xxx
         Err("incorrectly formatted single-system get request".into())
     } else {
         let s_name = tokens[3];
@@ -167,11 +174,37 @@ fn get_single(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> Call
 }
 
 fn system_modulus(framerate: u32, elapsed_ms: u32) -> u32 {
-    ( 1000.0 / elapsed_ms as f32 / framerate as f32 ) as u32
+    (1000.0 / elapsed_ms as f32 / framerate as f32) as u32
 }
 
 fn should_publish(framerate: u32, elapsed_ms: u32, seq_no: u64) -> bool {
     seq_no % u64::from(system_modulus(framerate, elapsed_ms)) == 0
+}
+
+fn publish_collection_add(ctx: &CapabilitiesContext, system: &System) -> Result<()> {
+    let subject = "event.decs.systems.add";
+    let item = format!("decs.system.{}", system.name);
+
+    let rid = ResourceIdentifier { rid: item };
+    let out = json!({
+        "value" : rid,
+        "idx": 0
+    });
+    ctx.log(&format!("Publishing Collection Add, subject: {}", subject));
+    ctx.msg()
+        .publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    Ok(())
+}
+
+fn publish_model_change(ctx: &CapabilitiesContext, system: &System) -> Result<()> {
+    let item = format!("decs.system.{}", system.name);
+    let subject = format!("event.{}.change", item);
+
+    let out = json!({ "values": system });
+    ctx.log(&format!("Publishing Model Change, subject: {}", subject));
+    ctx.msg()
+        .publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -180,7 +213,6 @@ mod test {
 
     #[test]
     fn test_modulus() {
-
         // At 1 FPS, with an elapsed of 100ms , modulus should be 10 (how many elapseds in the FPS)
         assert_eq!(10, system_modulus(1, 100));
         assert_eq!(1, system_modulus(10, 100));

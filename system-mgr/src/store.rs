@@ -1,24 +1,20 @@
 use decscloud_codec as codec;
 use guest::prelude::*;
 
-pub(crate) const SYSTEMS_KEY: &str = "systems";
-const SYSTEM_EXPIRATION_SECONDS: u32 = 60 * 5; // 5 minutes
+pub(crate) const SYSTEMS_KEY: &str = "decs:systems";
 
-// Functions in here right now use the raw KV capability
-// TODO: they should be migrated to use the DECS capability once available
-
+/// Stores a system in the KV store. Returns a boolean
+/// that indicates whether the system already existed
 pub(crate) fn put_system(
     ctx: &CapabilitiesContext,
     system: &codec::systemmgr::System,
-) -> guest::wapc::Result<()> {
+) -> guest::wapc::Result<bool> {
     let system_json = serde_json::to_string(system)?;
-    ctx.kv().set_add(SYSTEMS_KEY, &system.name)?;
-    ctx.kv().set(
-        &format!("system:{}", system.name),
-        &system_json,
-        Some(SYSTEM_EXPIRATION_SECONDS),
-    )?;
-    Ok(())
+
+    let new_count = ctx.kv().set_add(SYSTEMS_KEY, &system.name)?;
+    ctx.kv()
+        .set(&format!("system:{}", system.name), &system_json, None)?;
+    Ok(new_count == 0)
 }
 
 pub(crate) fn get_systems(ctx: &CapabilitiesContext) -> Result<Vec<String>> {
@@ -60,9 +56,14 @@ pub(crate) fn get_system_details(
 
 /// Retrieves a list of all entities in a given shard that have a value for each
 /// of the components indicated.
-pub(crate) fn get_entities_for_component_set(ctx: &CapabilitiesContext, shard: &str, components: &[String]) -> 
-std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-
-    let ek: Vec<String> = components.iter().map(|c| format!("decs:{}:{}:entities", shard, c)).collect(); 
-    ctx.kv().set_intersect(ek.as_slice()).map_err(|e| e.into())    
+pub(crate) fn get_entities_for_component_set(
+    ctx: &CapabilitiesContext,
+    shard: &str,
+    components: &[String],
+) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+    let ek: Vec<String> = components
+        .iter()
+        .map(|c| format!("decs:{}:{}:entities", shard, c))
+        .collect();
+    ctx.kv().set_intersect(ek.as_slice()).map_err(|e| e.into())
 }

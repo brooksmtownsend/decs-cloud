@@ -4,6 +4,7 @@ extern crate waxosuit_codec;
 #[macro_use]
 extern crate log;
 
+use codec::capabilities::{CapabilityProvider, Dispatcher, NullDispatcher};
 use crossbeam_channel::tick;
 use decscloud_codec as decs;
 use prost::Message;
@@ -13,7 +14,6 @@ use std::sync::Arc;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 use waxosuit_codec as codec;
-use codec::capabilities::{CapabilityProvider, Dispatcher, NullDispatcher};
 
 capability_provider!(TimerProvider, TimerProvider::new);
 

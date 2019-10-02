@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //! # Shard Manager
-//! 
+//!
 //! The shard manager is responsible for typical CRUD activities
 //! related to shards. Query is exposed via RES protocol
 extern crate waxosuit_guest as guest;
@@ -29,7 +29,7 @@ mod store;
 call_handler!(handle_call);
 
 pub fn handle_call(ctx: &CapabilitiesContext, operation: &str, msg: &[u8]) -> CallResult {
-    match operation {        
+    match operation {
         messaging::OP_DELIVER_MESSAGE => msg::handle_message(ctx, msg),
         core::OP_HEALTH_REQUEST => Ok(vec![]),
         _ => Err("bad dispatch".into()),

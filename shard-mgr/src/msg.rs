@@ -15,7 +15,6 @@ const GW_ACCESS_PREFIX: &str = "access.decs.shard";
 const GW_GET_COLLECTION: &str = "get.decs.shards";
 const GW_GET_SINGLE_PREFIX: &str = "get.decs.shard.";
 
-
 /// Examine the subject of the message and invoke the appopriate function
 pub fn handle_message(
     ctx: &CapabilitiesContext,
@@ -57,7 +56,7 @@ fn handle_get_collection(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessa
             vec![thevoid.name]
         } else {
             l
-        }        
+        }
     };
 
     let rids: Vec<_> = shardlist
@@ -78,9 +77,10 @@ fn handle_get_collection(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessa
 
 fn handle_get_single(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let tokens: Vec<&str> = msg.subject.split('.').collect();
-    if tokens.len() != 4 { // get.decs.shard.xxx
+    if tokens.len() != 4 {
+        // get.decs.shard.xxx
         Err("incorrectly formatted single-shard get request".into())
-    } else {        
+    } else {
         let shard = store::get_shard_details(ctx, tokens[3])?;
         let result = json!({
             "result": {

@@ -20,8 +20,8 @@
 //! decs.components.{shard-id}.{entity-id}.{component-name} - get/set
 //! decs.components.{shard-id}.{entity-id} - get (collection)
 //!
-extern crate waxosuit_guest as guest;
 extern crate decscloud_codec as decs;
+extern crate waxosuit_guest as guest;
 
 use guest::prelude::*;
 

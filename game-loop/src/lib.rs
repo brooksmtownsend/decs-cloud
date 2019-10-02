@@ -36,9 +36,13 @@ fn tick(ctx: &CapabilitiesContext, tick: impl Into<decs::timer::TimerTick>) -> C
 
     for shard in shards.iter() {
         let gtick = decs::timer::GameLoopTick::from_tick(&tick, &shard);
-        ctx.msg().publish(&format!("decs.{}.gameloop", shard), None, &serde_json::to_vec(&gtick)?)?;
+        ctx.msg().publish(
+            &format!("decs.{}.gameloop", shard),
+            None,
+            &serde_json::to_vec(&gtick)?,
+        )?;
     }
-    
+
     Ok(vec![])
 }
 

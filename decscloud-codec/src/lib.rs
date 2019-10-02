@@ -19,7 +19,7 @@ pub mod gateway {
         })
     }
 
-    pub fn error_not_found(msg: &str) -> serde_json::Value {        
+    pub fn error_not_found(msg: &str) -> serde_json::Value {
         json!({
             "error": {
                 "code": "system.notFound",
@@ -28,13 +28,10 @@ pub mod gateway {
         })
     }
 
-    pub fn success_response() -> serde_json::Value {        
-        json!({
-            "result": null 
-        })
+    pub fn success_response() -> serde_json::Value {
+        json!({ "result": null })
     }
 }
-    
 
 pub mod timer {
     include!(concat!(env!("OUT_DIR"), "/timer.rs"));
@@ -64,16 +61,15 @@ pub mod timer {
                 shard: shard.to_string(),
             }
         }
-    }    
+    }
 }
-
 
 pub mod shard {
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Shard {
         pub name: String,
         pub capacity: u32,
-        pub current: u32
+        pub current: u32,
     }
 
     impl Shard {
@@ -81,7 +77,7 @@ pub mod shard {
             Shard {
                 name: "the_void".to_string(),
                 capacity: 1_000,
-                current: 0
+                current: 0,
             }
         }
     }
@@ -97,17 +93,7 @@ pub mod systemmgr {
         /// Id of the shard in which this frame takes place
         pub shard: String,
         /// Entity ID to which the components in the vector belong
-        pub entity_id: String,        
-    }
-
-    /// Represents a single instance of a component value. For example, player `bob` in the `default`
-    /// space might have a `location` value of `{"x": 12, "y": 50}`.
-    #[derive(Debug, Serialize, Deserialize, Default)]
-    pub struct ComponentValue {
-        /// Component name
-        pub name: String,
-        /// Space in which this value exists        
-        pub value: String,
+        pub entity_id: String,
     }
 
     #[derive(Debug, Serialize, Deserialize, Default)]
@@ -117,6 +103,6 @@ pub mod systemmgr {
         /// Frame rate, in frames per second, this system prefers getting component updates
         pub framerate: u32,
         /// List of components for which this system has registered for updates (delivered per frame)
-        pub components: Vec<String>,        
-    }    
+        pub components: Vec<String>,
+    }
 }
