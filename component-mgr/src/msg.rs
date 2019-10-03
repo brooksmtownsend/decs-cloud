@@ -7,7 +7,8 @@ const SET_COMPONENT_PREFIX: &str = "call.decs.components.";
 const GW_ACCESS_PREFIX: &str = "access.decs.components.";
 
 // get.decs.components.{shard-id}.{entity-id}.{component-name}
-// call.decs.components.{shard-id}.{entity-id}.{component-name}.set
+// call.decs.components.{shard-id}.{entity-id}.{component-name}.set (model)
+// call.decs.components.{shard-id}.{entity-id}.{component-name}.new (collection)
 // access.decs.components.>
 pub(crate) fn handle_message(
     ctx: &CapabilitiesContext,
@@ -19,7 +20,9 @@ pub(crate) fn handle_message(
         if msg.subject.starts_with(GET_COMPONENT_PREFIX) {
             handle_get(&ctx, &msg)
         } else if msg.subject.starts_with(SET_COMPONENT_PREFIX) && msg.subject.ends_with("set") {
-            handle_set(&ctx, &msg)
+            handle_model_set(&ctx, &msg)
+        } else if msg.subject.starts_with(SET_COMPONENT_PREFIX) && msg.subject.ends_with("new") {
+            handle_collection_new(&ctx, &msg)
         } else if msg.subject.starts_with(GW_ACCESS_PREFIX) {
             handle_access(&ctx, &msg)
         } else {
@@ -43,21 +46,47 @@ fn handle_access(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> C
 }
 
 fn handle_get(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
-    ctx.log(&format!("Handling get request: {}", msg.subject));
     let tokens: Vec<&str> = msg.subject.split('.').collect();
-    if tokens.len() == 6 {
-        handle_single_get(ctx, msg, &tokens)
+    let rid = store::get_rid(&tokens);
+    ctx.log(&format!(
+        "Handling get request: {}, rid: {}",
+        msg.subject, rid
+    ));
+
+    if let store::ComponentType::Model = store::component_type(ctx, &rid)? {
+        handle_single_get(ctx, msg, &rid)
     } else {
-        Err("invalid subject format for component management".into())
+        handle_collection_get(ctx, msg, &rid)
     }
+}
+
+fn handle_collection_get(
+    ctx: &CapabilitiesContext,
+    msg: &messaging::BrokerMessage,
+    rid: &str,
+) -> CallResult {
+    let rids = store::get_collection_rids(ctx, &rid)?;
+
+    let refs: Vec<_> = rids
+        .iter()
+        .map(|s| codec::gateway::ResourceIdentifier { rid: s.clone() })
+        .collect();
+    let result = json!({
+        "result": {
+            "collection": refs
+        }
+    });
+    ctx.msg()
+        .publish(&msg.reply_to, None, &serde_json::to_vec(&result)?)?;
+    Ok(vec![])
 }
 
 fn handle_single_get(
     ctx: &CapabilitiesContext,
     msg: &messaging::BrokerMessage,
-    tokens: &[&str],
+    rid: &str,
 ) -> CallResult {
-    match store::get_component(ctx, tokens) {
+    match store::get_component(ctx, rid) {
         Ok(c) => {
             let model_json: serde_json::Value = serde_json::from_str(&c)?;
             ctx.msg().publish(
@@ -82,7 +111,26 @@ fn handle_single_get(
     }
 }
 
-/// When the RES protocol invokes a set, the payload looks as follows:
+fn handle_collection_new(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
+    let tokens: Vec<&str> = msg.subject.split('.').collect();
+    let new_component = extract_model_from_set(&msg.body)?;
+    ctx.log(&format!(
+        "Handling collection new: {}, reply-to: {}",
+        msg.subject, msg.reply_to
+    ));
+    let (new_index, rid) =
+        store::add_component_to_collection(ctx, &tokens, &serde_json::to_string(&new_component)?)?;
+    publish_collection_add(ctx, &tokens, &rid, new_index)?;
+    let resid = codec::gateway::ResourceIdentifier { rid: rid.clone() };
+    let result = json!({ "result": resid });
+    if !msg.reply_to.is_empty() {
+        ctx.msg()
+            .publish(&msg.reply_to, None, &serde_json::to_vec(&result)?)?;
+    };
+    Ok(vec![])
+}
+
+/// When the RES protocol invokes a set for a single model, the payload looks as follows:
 /// ```
 /// {
 ///   "params" : ... the model object ..,
@@ -90,18 +138,15 @@ fn handle_single_get(
 ///   "cid" : ... connection id ...
 /// }
 /// ```
-fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
+fn handle_model_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let tokens: Vec<&str> = msg.subject.split('.').collect();
     let comp = extract_model_from_set(&msg.body)?;
     ctx.log(&format!(
         "Handling set request: {}, reply-to: {}",
         msg.subject, msg.reply_to
     ));
-    let put_action = store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
-    match put_action {
-        store::PutAction::CollectionAdd(idx) => publish_collection_add(ctx, &tokens, idx)?,
-        store::PutAction::ModelChanged => publish_model_change(ctx, comp, &tokens)?,
-    };
+    store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
+    publish_model_change(ctx, comp, &tokens)?;
     if !msg.reply_to.is_empty() {
         ctx.msg().publish(
             &msg.reply_to,
@@ -112,14 +157,22 @@ fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> Call
     Ok(vec![])
 }
 
-fn publish_collection_add(ctx: &CapabilitiesContext, tokens: &[&str], idx: usize) -> Result<()> {
-    //decs.components.{shard-id}.{entity-id}
-    let subject = format!("event.decs.components.{}.{}.add", tokens[3], tokens[4]);
-    let item = format!("decs.components.{}.{}.{}", tokens[3], tokens[4], tokens[5]);
+fn publish_collection_add(
+    ctx: &CapabilitiesContext,
+    tokens: &[&str],
+    rid: &str,
+    idx: usize,
+) -> Result<()> {
+    let subject = format!(
+        "event.decs.components.{}.{}.{}.add",
+        tokens[3], tokens[4], tokens[5]
+    );
 
-    let rid = decs::gateway::ResourceIdentifier { rid: item };
+    let resid = decs::gateway::ResourceIdentifier {
+        rid: rid.to_string(),
+    };
     let out = json!({
-        "value" : rid,
+        "value" : resid,
         "idx": idx
     });
     ctx.log(&format!("Publishing Collection Add, subject: {}", subject));
