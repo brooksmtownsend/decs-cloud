@@ -5,7 +5,7 @@ extern crate serde_derive;
 extern crate serde_json;
 
 pub mod gateway {
-    #[derive(Debug, Serialize, Deserialize, Default)]
+    #[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
     pub struct ResourceIdentifier {
         /// The resource ID
         pub rid: String,
@@ -30,6 +30,94 @@ pub mod gateway {
 
     pub fn success_response() -> serde_json::Value {
         json!({ "result": null })
+    }
+
+    /// Represents the intent of a RES protocol request as described by a message broker subject
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    pub enum ResProtocolRequest {
+        Get(String),
+        New(String),
+        Set(String),
+        Delete(String),
+    }
+
+    impl ToString for ResProtocolRequest {
+        fn to_string(&self) -> String {
+            match self {
+                ResProtocolRequest::Get(resid) => format!("get.{}", resid),
+                ResProtocolRequest::New(resid) => format!("call.{}.new", resid),
+                ResProtocolRequest::Set(resid) => format!("call.{}.set", resid),
+                ResProtocolRequest::Delete(resid) => format!("call.{}.delete", resid),
+            }
+        }
+    }
+
+    impl From<&str> for ResProtocolRequest {
+        fn from(source: &str) -> Self {
+            if source.starts_with("get.") {
+                ResProtocolRequest::Get(source[4..].to_string())
+            } else if source.starts_with("call.") && source.ends_with(".new") {
+                ResProtocolRequest::New(source[5..=source.len() - 5].to_string())
+            } else if source.starts_with("call.") && source.ends_with(".set") {
+                ResProtocolRequest::Set(source[5..=source.len() - 5].to_string())
+            } else {
+                ResProtocolRequest::Delete(source[5..=source.len() - 8].to_string())
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod test {
+        use super::ResProtocolRequest;
+
+        #[test]
+        fn test_resprotocol_roundtrip() {
+            let mut subject = "call.decs.components.the_void.player1.radar_contacts.new";
+            let mut req = ResProtocolRequest::from(subject);
+            assert_eq!(
+                req,
+                ResProtocolRequest::New("decs.components.the_void.player1.radar_contacts".into())
+            );
+            assert_eq!(
+                req.to_string(),
+                "call.decs.components.the_void.player1.radar_contacts.new"
+            );
+
+            subject = "call.decs.components.the_void.player1.radar_contacts.delete";
+            req = ResProtocolRequest::from(subject);
+            assert_eq!(
+                req,
+                ResProtocolRequest::Delete(
+                    "decs.components.the_void.player1.radar_contacts".into()
+                )
+            );
+            assert_eq!(
+                req.to_string(),
+                "call.decs.components.the_void.player1.radar_contacts.delete"
+            );
+
+            subject = "get.decs.components.the_void.player1.radar_contacts.1";
+            req = ResProtocolRequest::from(subject);
+            assert_eq!(
+                req,
+                ResProtocolRequest::Get("decs.components.the_void.player1.radar_contacts.1".into())
+            );
+            assert_eq!(
+                req.to_string(),
+                "get.decs.components.the_void.player1.radar_contacts.1"
+            );
+
+            subject = "call.decs.components.the_void.player1.position.set";
+            req = ResProtocolRequest::from(subject);
+            assert_eq!(
+                req,
+                ResProtocolRequest::Set("decs.components.the_void.player1.position".into())
+            );
+            assert_eq!(
+                req.to_string(),
+                "call.decs.components.the_void.player1.position.set"
+            );
+        }
     }
 }
 
