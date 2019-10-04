@@ -57,7 +57,7 @@ pub(crate) fn add_component_to_collection(
     let idkey = format!("{}:id", key);
 
     let id = ctx.kv().atomic_add(&idkey, 1)?;
-    let new_rid = format!("{}.{}", rid, id);    
+    let new_rid = format!("{}.{}", rid, id);
 
     // add to the collection (the component key)
     ctx.kv().set(&typekey, TYPE_COLLECTION, None)?;
@@ -134,7 +134,10 @@ pub(crate) fn remove_component_from_collection(
     let item_key = item_rid.replace('.', ":");
     let item_type_key = format!("{}:type", item_key);
 
-    ctx.log(&format!("Attempting to remove {} from key {}", item_rid, key));
+    ctx.log(&format!(
+        "Attempting to remove {} from key {}",
+        item_rid, key
+    ));
     let idx = index_of(ctx, &key, item_rid)?;
     let remcount = ctx.kv().set_remove(&key, item_rid)?;
     ctx.log(&format!("Removed {} items from set.", remcount));
@@ -178,15 +181,15 @@ mod test {
 
     #[test]
     fn test_key_extraction() {
-        let subject1 = "decs.components.the_void.abc1234.position";        
+        let subject1 = "decs.components.the_void.abc1234.position";
         let subject3 = "decs.components.the_void.abc1234.radar_contacts";
-        let tokens: Vec<&str> = subject1.split('.').collect();        
+        let tokens: Vec<&str> = subject1.split('.').collect();
         let tokens3: Vec<&str> = subject3.split('.').collect();
 
         assert_eq!(
             "decs:components:the_void:abc1234:position",
             component_key(&tokens)
-        );        
+        );
 
         assert_eq!(
             "decs:components:the_void:abc1234:radar_contacts",

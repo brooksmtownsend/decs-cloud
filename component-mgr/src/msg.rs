@@ -15,15 +15,12 @@ pub(crate) fn handle_message(
     let msg = msg.into().message;
 
     if let Some(msg) = msg {
-        if msg.subject.starts_with("access.") {
-            handle_access(ctx, &msg)
-        } else {
-            match ResProtocolRequest::from(msg.subject.as_str()) {
-                ResProtocolRequest::Get(ref refid) => handle_get(ctx, &msg, refid),
-                ResProtocolRequest::Set(ref refid) => handle_model_set(ctx, &msg, refid),
-                ResProtocolRequest::New(ref refid) => handle_collection_new(ctx, &msg, refid),
-                ResProtocolRequest::Delete(ref refid) => handle_delete(ctx, &msg, refid),
-            }
+        match ResProtocolRequest::from(msg.subject.as_str()) {
+            ResProtocolRequest::Access(ref refid) => handle_access(ctx, &msg, refid),
+            ResProtocolRequest::Get(ref refid) => handle_get(ctx, &msg, refid),
+            ResProtocolRequest::Set(ref refid) => handle_model_set(ctx, &msg, refid),
+            ResProtocolRequest::New(ref refid) => handle_collection_new(ctx, &msg, refid),
+            ResProtocolRequest::Delete(ref refid) => handle_delete(ctx, &msg, refid),
         }
     } else {
         Err("no message payload on subject".into())
@@ -33,7 +30,11 @@ pub(crate) fn handle_message(
 /// Responds to a RES messaging server with the access metadata
 /// By default, we allow all access
 /// TODO: upgrade access determination
-fn handle_access(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
+fn handle_access(
+    ctx: &CapabilitiesContext,
+    msg: &messaging::BrokerMessage,
+    _rid: &str,
+) -> CallResult {
     let result = json!({
         "result" : {
             "get" : true,
@@ -181,7 +182,9 @@ fn handle_collection_new(
     let (new_index, item_rid) =
         store::add_component_to_collection(ctx, rid, &serde_json::to_string(&new_component)?)?;
     publish_collection_add(ctx, &item_rid, new_index)?;
-    let resid = codec::gateway::ResourceIdentifier { rid: item_rid.clone() };
+    let resid = codec::gateway::ResourceIdentifier {
+        rid: item_rid.clone(),
+    };
     let result = json!({ "result": resid });
     if !msg.reply_to.is_empty() {
         ctx.msg()

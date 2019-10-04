@@ -39,6 +39,7 @@ pub mod gateway {
         New(String),
         Set(String),
         Delete(String),
+        Access(String),
     }
 
     impl ToString for ResProtocolRequest {
@@ -48,6 +49,7 @@ pub mod gateway {
                 ResProtocolRequest::New(resid) => format!("call.{}.new", resid),
                 ResProtocolRequest::Set(resid) => format!("call.{}.set", resid),
                 ResProtocolRequest::Delete(resid) => format!("call.{}.delete", resid),
+                ResProtocolRequest::Access(resid) => format!("access.{}", resid),
             }
         }
     }
@@ -60,6 +62,8 @@ pub mod gateway {
                 ResProtocolRequest::New(source[5..=source.len() - 5].to_string())
             } else if source.starts_with("call.") && source.ends_with(".set") {
                 ResProtocolRequest::Set(source[5..=source.len() - 5].to_string())
+            } else if source.starts_with("access.") {
+                ResProtocolRequest::Access(source[7..].to_string())
             } else {
                 ResProtocolRequest::Delete(source[5..=source.len() - 8].to_string())
             }
@@ -116,6 +120,19 @@ pub mod gateway {
             assert_eq!(
                 req.to_string(),
                 "call.decs.components.the_void.player1.position.set"
+            );
+
+            subject = "access.decs.components.the_void.player1.radar_contacts.1";
+            req = ResProtocolRequest::from(subject);
+            assert_eq!(
+                req,
+                ResProtocolRequest::Access(
+                    "decs.components.the_void.player1.radar_contacts.1".into()
+                )
+            );
+            assert_eq!(
+                req.to_string(),
+                "access.decs.components.the_void.player1.radar_contacts.1"
             );
         }
     }
