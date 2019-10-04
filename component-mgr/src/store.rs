@@ -10,6 +10,8 @@ const TYPE_COLLECTION: &str = "C";
 
 pub(crate) const NO_SUCH_COMPONENT: &str = "no such component";
 
+/// Examines the type metadata for a given rid, returning whether it is a
+/// model or a collection
 pub(crate) fn component_type(ctx: &CapabilitiesContext, rid: &str) -> Result<ComponentType> {
     let key = format!("{}:type", rid.replace('.', ":"));
     let typeval = ctx.kv().get(&key)?;
@@ -29,46 +31,47 @@ pub(crate) fn get_collection_rids(ctx: &CapabilitiesContext, rid: &str) -> Resul
     ctx.kv().set_members(&rid.replace('.', ":"))
 }
 
-pub(crate) fn put_component(
-    ctx: &CapabilitiesContext,
-    tokens: &[&str],
-    component: &str,
-) -> Result<()> {
-    let key = component_key(tokens);
-    let entkey = component_entities_key(tokens);
+/// Stores a single component value
+pub(crate) fn put_component(ctx: &CapabilitiesContext, rid: &str, component: &str) -> Result<()> {
+    let tokens: Vec<&str> = rid.split('.').collect();
+    let key = component_key(&tokens);
+    let entkey = component_entities_key(&tokens);
     let typekey = format!("{}:type", key);
 
     ctx.kv().set(&typekey, TYPE_MODEL, None)?;
-    ctx.kv().set_add(&entkey, &entity_id(tokens))?; // add entity to list of entities with a given component
+    ctx.kv().set_add(&entkey, &entity_id(&tokens))?; // add entity to list of entities with a given component
     ctx.kv().set(&key, component, None)?;
     Ok(())
 }
 
+/// Adds a component value to the given collection
 pub(crate) fn add_component_to_collection(
     ctx: &CapabilitiesContext,
-    tokens: &[&str],
+    rid: &str,
     component: &str,
 ) -> Result<(usize, String)> {
-    let key = component_key(tokens);
-    let entkey = component_entities_key(tokens);
+    let tokens: Vec<&str> = rid.split('.').collect();
+    let key = component_key(&tokens);
+    let entkey = component_entities_key(&tokens);
     let typekey = format!("{}:type", key);
     let idkey = format!("{}:id", key);
 
     let id = ctx.kv().atomic_add(&idkey, 1)?;
-
-    let rid = format!("{}.{}", tokens[1..=5].join("."), id); // e.g. `decs.components.(shard).(entity).(collection-component).1`
+    let new_rid = format!("{}.{}", rid, id);    
 
     // add to the collection (the component key)
     ctx.kv().set(&typekey, TYPE_COLLECTION, None)?;
-    let num_added = ctx.kv().set_add(&key, &rid)?;
+    let num_added = ctx.kv().set_add(&key, &new_rid)?;
+
+    ctx.log(&format!("Adding '{}' to set '{}'", new_rid, key));
 
     // set the individual item
-    let ridkey = rid.replace('.', ":");
+    let ridkey = new_rid.replace('.', ":");
     let ridtypekey = format!("{}:type", ridkey);
     ctx.kv().set(&ridkey, component, None)?;
     ctx.kv().set(&ridtypekey, TYPE_MODEL, None)?;
 
-    ctx.kv().set_add(&entkey, &entity_id(tokens))?; // add entity to list of entities with a given component
+    ctx.kv().set_add(&entkey, &entity_id(&tokens))?; // add entity to list of entities with a given component
     let members = ctx.kv().set_members(&key)?;
     if num_added == 0 {
         Ok((
@@ -76,11 +79,19 @@ pub(crate) fn add_component_to_collection(
                 .iter()
                 .position(|cmp| *cmp == rid)
                 .unwrap_or_else(|| members.len() - 1),
-            rid.clone(),
+            new_rid.clone(),
         ))
     } else {
-        Ok((members.len() - 1, rid.clone())) // new item was added to the end
+        Ok((members.len() - 1, new_rid.clone())) // new item was added to the end
     }
+}
+
+fn index_of(ctx: &CapabilitiesContext, setkey: &str, item: &str) -> Result<usize> {
+    let members = ctx.kv().set_members(&setkey)?;
+    Ok(members
+        .iter()
+        .position(|s| *s == item)
+        .unwrap_or_else(|| members.len() - 1))
 }
 
 pub(crate) fn get_component(
@@ -101,54 +112,63 @@ pub(crate) fn get_component(
     }
 }
 
-/// Extract the key-value store key for a single component from either the set or get RES protocol subject
-pub(crate) fn component_key(tokens: &[&str]) -> String {
-    tokens[1..=5].join(":")
+pub(crate) fn delete_component(ctx: &CapabilitiesContext, rid: &str) -> Result<()> {
+    let tokens: Vec<&str> = rid.split('.').collect();
+    let key = rid.replace('.', ":");
+    let type_key = format!("{}:type", key);
+    let ent_key = component_entities_key(&tokens);
+
+    ctx.kv().del_key(&type_key)?;
+    ctx.kv().set_remove(&ent_key, &entity_id(&tokens))?;
+    ctx.kv().del_key(&key)?;
+
+    Ok(())
 }
 
-pub(crate) fn get_rid(tokens: &[&str]) -> String {
-    if tokens[tokens.len() - 1] == "new" {
-        tokens[1..=tokens.len() - 2].join(".")
-    } else {
-        tokens[1..tokens.len()].join(".")
-    }
+pub(crate) fn remove_component_from_collection(
+    ctx: &CapabilitiesContext,
+    rid: &str,
+    item_rid: &str,
+) -> Result<usize> {
+    let key = rid.replace('.', ":");
+    let item_key = item_rid.replace('.', ":");
+    let item_type_key = format!("{}:type", item_key);
+
+    ctx.log(&format!("Attempting to remove {} from key {}", item_rid, key));
+    let idx = index_of(ctx, &key, item_rid)?;
+    let remcount = ctx.kv().set_remove(&key, item_rid)?;
+    ctx.log(&format!("Removed {} items from set.", remcount));
+    ctx.kv().del_key(&item_key)?;
+    ctx.kv().del_key(&item_type_key)?;
+
+    Ok(idx)
 }
+
+/// Extract the key-value store key for a single component from either the set or get RES protocol subject
+pub(crate) fn component_key(tokens: &[&str]) -> String {
+    tokens.join(":")
+}
+
 /// Extract the key-value store key for the set of entities which have a given
 /// component associated with them.
 /// decs:{shard}:{component}:entities
 /// Subject looks like : call.decs.components.the_void.abc1234.position.set
 pub(crate) fn component_entities_key(tokens: &[&str]) -> String {
-    format!("decs:{}:{}:entities", tokens[3], tokens[5])
+    format!("decs:{}:{}:entities", tokens[2], tokens[4])
 }
 
+// decs.components.the_void.abc1234
 pub(crate) fn entity_id(tokens: &[&str]) -> String {
-    tokens[4].to_string()
+    tokens[3].to_string()
 }
 
 #[cfg(test)]
 mod test {
-    use super::{component_entities_key, component_key, get_rid};
-
-    #[test]
-    fn test_rid_extract() {
-        let sub1 = "call.decs.components.the_void.player1.radar_contacts.new";
-        let tokens1: Vec<&str> = sub1.split('.').collect();
-        let sub2 = "get.decs.components.the_void.player1.radar_contacts.1";
-        let tokens2: Vec<&str> = sub2.split('.').collect();
-
-        assert_eq!(
-            "decs.components.the_void.player1.radar_contacts",
-            get_rid(&tokens1)
-        );
-        assert_eq!(
-            "decs.components.the_void.player1.radar_contacts.1",
-            get_rid(&tokens2)
-        );
-    }
+    use super::{component_entities_key, component_key};
 
     #[test]
     fn test_entities_key_extraction() {
-        let subject = "call.decs.components.the_void.abc1234.position.set";
+        let subject = "decs.components.the_void.abc1234.position";
         let tokens: Vec<&str> = subject.split('.').collect();
         assert_eq!(
             "decs:the_void:position:entities",
@@ -158,21 +178,15 @@ mod test {
 
     #[test]
     fn test_key_extraction() {
-        let subject1 = "get.decs.components.the_void.abc1234.position";
-        let subject2 = "call.decs.components.the_void.abc1234.position.set";
-        let subject3 = "call.decs.components.the_void.abc1234.radar_contacts.new";
-        let tokens: Vec<&str> = subject1.split('.').collect();
-        let tokens2: Vec<&str> = subject2.split('.').collect();
+        let subject1 = "decs.components.the_void.abc1234.position";        
+        let subject3 = "decs.components.the_void.abc1234.radar_contacts";
+        let tokens: Vec<&str> = subject1.split('.').collect();        
         let tokens3: Vec<&str> = subject3.split('.').collect();
 
         assert_eq!(
             "decs:components:the_void:abc1234:position",
             component_key(&tokens)
-        );
-        assert_eq!(
-            "decs:components:the_void:abc1234:position",
-            component_key(&tokens2)
-        );
+        );        
 
         assert_eq!(
             "decs:components:the_void:abc1234:radar_contacts",

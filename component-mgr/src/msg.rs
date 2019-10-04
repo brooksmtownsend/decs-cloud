@@ -1,14 +1,12 @@
 use crate::store;
+use codec::gateway::ResProtocolRequest;
 use decscloud_codec as codec;
 use guest::prelude::*;
-
-const GET_COMPONENT_PREFIX: &str = "get.decs.components.";
-const SET_COMPONENT_PREFIX: &str = "call.decs.components.";
-const GW_ACCESS_PREFIX: &str = "access.decs.components.";
 
 // get.decs.components.{shard-id}.{entity-id}.{component-name}
 // call.decs.components.{shard-id}.{entity-id}.{component-name}.set (model)
 // call.decs.components.{shard-id}.{entity-id}.{component-name}.new (collection)
+// call.decs.components.{shard-id}.{entity-id}.{component-name}.delete (collection or model)
 // access.decs.components.>
 pub(crate) fn handle_message(
     ctx: &CapabilitiesContext,
@@ -17,22 +15,24 @@ pub(crate) fn handle_message(
     let msg = msg.into().message;
 
     if let Some(msg) = msg {
-        if msg.subject.starts_with(GET_COMPONENT_PREFIX) {
-            handle_get(&ctx, &msg)
-        } else if msg.subject.starts_with(SET_COMPONENT_PREFIX) && msg.subject.ends_with("set") {
-            handle_model_set(&ctx, &msg)
-        } else if msg.subject.starts_with(SET_COMPONENT_PREFIX) && msg.subject.ends_with("new") {
-            handle_collection_new(&ctx, &msg)
-        } else if msg.subject.starts_with(GW_ACCESS_PREFIX) {
-            handle_access(&ctx, &msg)
+        if msg.subject.starts_with("access.") {
+            handle_access(ctx, &msg)
         } else {
-            Err("unrecognized component management subject".into())
+            match ResProtocolRequest::from(msg.subject.as_str()) {
+                ResProtocolRequest::Get(ref refid) => handle_get(ctx, &msg, refid),
+                ResProtocolRequest::Set(ref refid) => handle_model_set(ctx, &msg, refid),
+                ResProtocolRequest::New(ref refid) => handle_collection_new(ctx, &msg, refid),
+                ResProtocolRequest::Delete(ref refid) => handle_delete(ctx, &msg, refid),
+            }
         }
     } else {
         Err("no message payload on subject".into())
     }
 }
 
+/// Responds to a RES messaging server with the access metadata
+/// By default, we allow all access
+/// TODO: upgrade access determination
 fn handle_access(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let result = json!({
         "result" : {
@@ -45,21 +45,78 @@ fn handle_access(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> C
     Ok(vec![])
 }
 
-fn handle_get(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
-    let tokens: Vec<&str> = msg.subject.split('.').collect();
-    let rid = store::get_rid(&tokens);
+/// Responds to a RES protocol GET request, which can be for a single model
+/// or a collection (which is an array of rids)
+fn handle_get(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage, rid: &str) -> CallResult {
     ctx.log(&format!(
-        "Handling get request: {}, rid: {}",
+        "Handling GET request: {}, rid: {}",
         msg.subject, rid
     ));
 
-    if let store::ComponentType::Model = store::component_type(ctx, &rid)? {
-        handle_single_get(ctx, msg, &rid)
+    if let store::ComponentType::Model = store::component_type(ctx, rid)? {
+        handle_single_get(ctx, msg, rid)
     } else {
-        handle_collection_get(ctx, msg, &rid)
+        handle_collection_get(ctx, msg, rid)
     }
 }
 
+fn handle_delete(
+    ctx: &CapabilitiesContext,
+    msg: &messaging::BrokerMessage,
+    rid: &str,
+) -> CallResult {
+    ctx.log(&format!(
+        "Handling DELETE request: {}, rid: {}",
+        msg.subject, rid
+    ));
+    if let store::ComponentType::Model = store::component_type(ctx, rid)? {
+        handle_model_delete(ctx, msg, rid)
+    } else {
+        handle_collection_delete_item(ctx, msg, rid)
+    }
+}
+
+fn handle_model_delete(
+    ctx: &CapabilitiesContext,
+    msg: &messaging::BrokerMessage,
+    rid: &str,
+) -> CallResult {
+    store::delete_component(ctx, rid)?;
+
+    // TODO: figure out what to publish for RES protocol model deletion
+
+    if !msg.reply_to.is_empty() {
+        ctx.msg().publish(
+            &msg.reply_to,
+            None,
+            &serde_json::to_vec(&codec::gateway::success_response())?,
+        )?;
+    };
+
+    Ok(vec![])
+}
+
+fn handle_collection_delete_item(
+    ctx: &CapabilitiesContext,
+    msg: &messaging::BrokerMessage,
+    rid: &str,
+) -> CallResult {
+    let raw: serde_json::Value = serde_json::from_slice(&msg.body)?;
+    let item_rid: String = raw["params"]["rid"].as_str().unwrap().to_string();
+    let idx = store::remove_component_from_collection(ctx, rid, &item_rid)?;
+    publish_collection_remove(ctx, rid, idx)?;
+    if !msg.reply_to.is_empty() {
+        ctx.msg().publish(
+            &msg.reply_to,
+            None,
+            &serde_json::to_vec(&codec::gateway::success_response())?,
+        )?;
+    };
+
+    Ok(vec![])
+}
+
+/// Responds to a RES protocol GET request with a collection of reference IDs
 fn handle_collection_get(
     ctx: &CapabilitiesContext,
     msg: &messaging::BrokerMessage,
@@ -111,17 +168,20 @@ fn handle_single_get(
     }
 }
 
-fn handle_collection_new(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
-    let tokens: Vec<&str> = msg.subject.split('.').collect();
+fn handle_collection_new(
+    ctx: &CapabilitiesContext,
+    msg: &messaging::BrokerMessage,
+    rid: &str,
+) -> CallResult {
     let new_component = extract_model_from_set(&msg.body)?;
     ctx.log(&format!(
-        "Handling collection new: {}, reply-to: {}",
-        msg.subject, msg.reply_to
+        "Handling collection new: {}, rid: {}",
+        msg.subject, rid
     ));
-    let (new_index, rid) =
-        store::add_component_to_collection(ctx, &tokens, &serde_json::to_string(&new_component)?)?;
-    publish_collection_add(ctx, &tokens, &rid, new_index)?;
-    let resid = codec::gateway::ResourceIdentifier { rid: rid.clone() };
+    let (new_index, item_rid) =
+        store::add_component_to_collection(ctx, rid, &serde_json::to_string(&new_component)?)?;
+    publish_collection_add(ctx, &item_rid, new_index)?;
+    let resid = codec::gateway::ResourceIdentifier { rid: item_rid.clone() };
     let result = json!({ "result": resid });
     if !msg.reply_to.is_empty() {
         ctx.msg()
@@ -138,15 +198,18 @@ fn handle_collection_new(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessa
 ///   "cid" : ... connection id ...
 /// }
 /// ```
-fn handle_model_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
-    let tokens: Vec<&str> = msg.subject.split('.').collect();
+fn handle_model_set(
+    ctx: &CapabilitiesContext,
+    msg: &messaging::BrokerMessage,
+    rid: &str,
+) -> CallResult {
     let comp = extract_model_from_set(&msg.body)?;
     ctx.log(&format!(
         "Handling set request: {}, reply-to: {}",
         msg.subject, msg.reply_to
     ));
-    store::put_component(ctx, &tokens, &serde_json::to_string(&comp)?)?;
-    publish_model_change(ctx, comp, &tokens)?;
+    store::put_component(ctx, rid, &serde_json::to_string(&comp)?)?;
+    publish_model_change(ctx, comp, rid)?;
     if !msg.reply_to.is_empty() {
         ctx.msg().publish(
             &msg.reply_to,
@@ -157,16 +220,8 @@ fn handle_model_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -
     Ok(vec![])
 }
 
-fn publish_collection_add(
-    ctx: &CapabilitiesContext,
-    tokens: &[&str],
-    rid: &str,
-    idx: usize,
-) -> Result<()> {
-    let subject = format!(
-        "event.decs.components.{}.{}.{}.add",
-        tokens[3], tokens[4], tokens[5]
-    );
+fn publish_collection_add(ctx: &CapabilitiesContext, rid: &str, idx: usize) -> Result<()> {
+    let subject = format!("event.{}.add", rid);
 
     let resid = decs::gateway::ResourceIdentifier {
         rid: rid.to_string(),
@@ -181,13 +236,24 @@ fn publish_collection_add(
     Ok(())
 }
 
+fn publish_collection_remove(ctx: &CapabilitiesContext, rid: &str, idx: usize) -> Result<()> {
+    let subject = format!("event.{}.remove", rid);
+    let out = json!({ "idx": idx });
+    ctx.log(&format!(
+        "Publishing collection remove, subject: {}, idx: {}",
+        subject, idx,
+    ));
+    ctx.msg()
+        .publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    Ok(())
+}
+
 fn publish_model_change(
     ctx: &CapabilitiesContext,
     comp: serde_json::Value,
-    tokens: &[&str],
+    rid: &str,
 ) -> Result<()> {
-    let item = format!("decs.components.{}.{}.{}", tokens[3], tokens[4], tokens[5]);
-    let subject = format!("event.{}.change", item);
+    let subject = format!("event.{}.change", rid);
 
     let out = json!({ "values": comp });
     ctx.log(&format!("Publishing Model Change, subject: {}", subject));
