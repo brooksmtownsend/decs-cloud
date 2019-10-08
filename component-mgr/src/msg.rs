@@ -181,7 +181,7 @@ fn handle_collection_new(
     ));
     let (new_index, item_rid) =
         store::add_component_to_collection(ctx, rid, &serde_json::to_string(&new_component)?)?;
-    publish_collection_add(ctx, &item_rid, new_index)?;
+    publish_collection_add(ctx, &rid, &item_rid, new_index)?;
     let resid = codec::gateway::ResourceIdentifier {
         rid: item_rid.clone(),
     };
@@ -223,11 +223,11 @@ fn handle_model_set(
     Ok(vec![])
 }
 
-fn publish_collection_add(ctx: &CapabilitiesContext, rid: &str, idx: usize) -> Result<()> {
+fn publish_collection_add(ctx: &CapabilitiesContext, rid: &str, item_rid: &str, idx: usize) -> Result<()> {
     let subject = format!("event.{}.add", rid);
 
     let resid = decs::gateway::ResourceIdentifier {
-        rid: rid.to_string(),
+        rid: item_rid.to_string(),
     };
     let out = json!({
         "value" : resid,
