@@ -10,14 +10,9 @@
 
 use crate::store;
 use decscloud_codec as codec;
-use decscloud_codec::gateway::ResourceIdentifier;
+use decscloud_codec::gateway::{ResProtocolRequest, ResourceIdentifier};
 use decscloud_codec::shard::Shard;
 use guest::prelude::*;
-
-const GW_SET_PREFIX: &str = "call.decs.shard.";
-const GW_ACCESS_PREFIX: &str = "access.decs.shard";
-const GW_GET_COLLECTION: &str = "get.decs.shards";
-const GW_GET_SINGLE_PREFIX: &str = "get.decs.shard.";
 
 /// Examine the subject of the message and invoke the appopriate function
 pub fn handle_message(
@@ -26,16 +21,18 @@ pub fn handle_message(
 ) -> CallResult {
     let msg = msg.into().message;
     if let Some(msg) = msg {
-        if msg.subject == GW_GET_COLLECTION {
-            handle_get_collection(&ctx, &msg)?;
-        } else if msg.subject.starts_with(GW_GET_SINGLE_PREFIX) {
-            handle_get_single(&ctx, &msg)?;
-        } else if msg.subject.starts_with(GW_ACCESS_PREFIX) {
-            handle_access(&ctx, &msg)?;
-        } else if msg.subject.starts_with(GW_SET_PREFIX) && msg.subject.ends_with("set") {
-            handle_set(&ctx, &msg)?;
+        match ResProtocolRequest::from(msg.subject.as_str()) {
+            ResProtocolRequest::Get(_) if msg.subject.ends_with("shards") => {
+                handle_get_collection(ctx, &msg)
+            }
+            ResProtocolRequest::Get(_) => handle_get_single(ctx, &msg),
+            ResProtocolRequest::Set(_) => handle_set(ctx, &msg),
+            ResProtocolRequest::Access(_) => handle_access(ctx, &msg),
+            ResProtocolRequest::Call(_, ref operation) if operation == "incr" => {
+                handle_incr(ctx, &msg)
+            }
+            _ => Err("unknown service request format".into()),
         }
-        Ok(vec![])
     } else {
         Err("no message payload on subject".into())
     }
@@ -58,13 +55,30 @@ fn handle_set(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> Call
     set_shard(ctx, &shard)
 }
 
+/// The component manager will make this call when it sets or deletes a component
+/// from within a shard. The maintenance of this count is the shard's responsibility. When
+/// the shard changes as a result of this new component count, it will publish a model
+/// change event so RESgate listeners can see it
+fn handle_incr(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
+    let v: serde_json::Value = serde_json::from_slice(&msg.body)?;
+    let amt: i32 = v["params"]["amount"].as_i64().unwrap_or(0) as i32;
+    if amt != 0 {
+        let tokens: Vec<&str> = msg.subject.split('.').collect(); // call.decs.shard.().incr
+        let shard = tokens[3];
+        let new_shard = store::incr_shard(ctx, shard, amt)?;
+        publish_model_change(ctx, &new_shard)
+    } else {
+        Ok(vec![])
+    }
+}
+
 fn set_shard(ctx: &CapabilitiesContext, shard: &Shard) -> CallResult {
-    match store::put_shard(ctx, shard) {
+    match store::put_shard(ctx, &shard) {
         Ok((pos, existed)) => {
             if !existed {
-                publish_collection_add(ctx, shard, pos)
+                publish_collection_add(ctx, &shard, pos)
             } else {
-                publish_model_change(ctx, shard)
+                publish_model_change(ctx, &shard)
             }
         }
         Err(e) => Err(e),
@@ -169,6 +183,11 @@ fn handle_get_single(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) 
                 )?;
             }
             Err(e) => {
+                ctx.msg().publish(
+                    &msg.reply_to,
+                    None,
+                    &serde_json::to_vec(&codec::gateway::error_invalid_params(&format!("{}", e)))?,
+                )?;
                 ctx.log(&format!("Failed to retrieve component: {}", e));
                 return Err(e);
             }

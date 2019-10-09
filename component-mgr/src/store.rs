@@ -32,16 +32,18 @@ pub(crate) fn get_collection_rids(ctx: &CapabilitiesContext, rid: &str) -> Resul
 }
 
 /// Stores a single component value
-pub(crate) fn put_component(ctx: &CapabilitiesContext, rid: &str, component: &str) -> Result<()> {
+pub(crate) fn put_component(ctx: &CapabilitiesContext, rid: &str, component: &str) -> Result<bool> {
     let tokens: Vec<&str> = rid.split('.').collect();
     let key = component_key(&tokens);
     let entkey = component_entities_key(&tokens);
     let typekey = format!("{}:type", key);
 
+    let existed = ctx.kv().exists(&key)?;
+
     ctx.kv().set(&typekey, TYPE_MODEL, None)?;
     ctx.kv().set_add(&entkey, &entity_id(&tokens))?; // add entity to list of entities with a given component
     ctx.kv().set(&key, component, None)?;
-    Ok(())
+    Ok(existed)
 }
 
 /// Adds a component value to the given collection
