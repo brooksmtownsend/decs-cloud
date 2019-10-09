@@ -21,6 +21,7 @@ pub(crate) fn handle_message(
             ResProtocolRequest::Set(ref refid) => handle_model_set(ctx, &msg, refid),
             ResProtocolRequest::New(ref refid) => handle_collection_new(ctx, &msg, refid),
             ResProtocolRequest::Delete(ref refid) => handle_delete(ctx, &msg, refid),
+            _ => Err("unknown service request".into()),
         }
     } else {
         Err("no message payload on subject".into())
@@ -85,6 +86,10 @@ fn handle_model_delete(
     store::delete_component(ctx, rid)?;
 
     // TODO: figure out what to publish for RES protocol model deletion
+
+    let tokens: Vec<&str> = rid.split('.').collect();
+    let shard = tokens[2]; // decs.components.(shard).(entity)...
+    publish_update_shard(ctx, shard, -1)?;
 
     if !msg.reply_to.is_empty() {
         ctx.msg().publish(
@@ -211,7 +216,12 @@ fn handle_model_set(
         "Handling set request: {}, reply-to: {}",
         msg.subject, msg.reply_to
     ));
-    store::put_component(ctx, rid, &serde_json::to_string(&comp)?)?;
+    let existed = store::put_component(ctx, rid, &serde_json::to_string(&comp)?)?;
+    if !existed {
+        let tokens: Vec<&str> = rid.split('.').collect();
+        let shard = tokens[2]; // decs.components.(shard).(entity)...
+        publish_update_shard(ctx, shard, 1)?;
+    }
     publish_model_change(ctx, comp, rid)?;
     if !msg.reply_to.is_empty() {
         ctx.msg().publish(
@@ -223,7 +233,24 @@ fn handle_model_set(
     Ok(vec![])
 }
 
-fn publish_collection_add(ctx: &CapabilitiesContext, rid: &str, item_rid: &str, idx: usize) -> Result<()> {
+fn publish_update_shard(ctx: &CapabilitiesContext, shard: &str, amount: i32) -> Result<()> {
+    let out = json!({
+        "params": {
+            "amount": amount
+        }
+    });
+    let subject = format!("call.decs.shard.{}.incr", shard);
+    ctx.msg()
+        .publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    Ok(())
+}
+
+fn publish_collection_add(
+    ctx: &CapabilitiesContext,
+    rid: &str,
+    item_rid: &str,
+    idx: usize,
+) -> Result<()> {
     let subject = format!("event.{}.add", rid);
 
     let resid = decs::gateway::ResourceIdentifier {

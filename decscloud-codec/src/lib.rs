@@ -28,6 +28,16 @@ pub mod gateway {
         })
     }
 
+    //JSON.stringify({ error: { code: "system.invalidParams", message }});
+    pub fn error_invalid_params(msg: &str) -> serde_json::Value {
+        json!({
+            "error": {
+                "code": "system.invalidParams",
+                "message": msg
+            }
+        })
+    }
+
     pub fn success_response() -> serde_json::Value {
         json!({ "result": null })
     }
@@ -40,6 +50,8 @@ pub mod gateway {
         Set(String),
         Delete(String),
         Access(String),
+        Call(String, String),
+        Unknown,
     }
 
     impl ToString for ResProtocolRequest {
@@ -50,6 +62,8 @@ pub mod gateway {
                 ResProtocolRequest::Set(resid) => format!("call.{}.set", resid),
                 ResProtocolRequest::Delete(resid) => format!("call.{}.delete", resid),
                 ResProtocolRequest::Access(resid) => format!("access.{}", resid),
+                ResProtocolRequest::Call(resid, method) => format!("call.{}.{}", resid, method),
+                ResProtocolRequest::Unknown => "??".to_string(),
             }
         }
     }
@@ -64,8 +78,16 @@ pub mod gateway {
                 ResProtocolRequest::Set(source[5..=source.len() - 5].to_string())
             } else if source.starts_with("access.") {
                 ResProtocolRequest::Access(source[7..].to_string())
-            } else {
+            } else if source.ends_with("delete") {
                 ResProtocolRequest::Delete(source[5..=source.len() - 8].to_string())
+            } else if source.starts_with("call.") {
+                // a call that isn't new or set
+                let tokens: Vec<&str> = source.split('.').collect();
+                let rid = tokens[1..tokens.len() - 1].join(".");
+                let method = tokens[tokens.len() - 1];
+                ResProtocolRequest::Call(rid, method.to_string())
+            } else {
+                ResProtocolRequest::Unknown
             }
         }
     }
@@ -134,6 +156,19 @@ pub mod gateway {
                 req.to_string(),
                 "access.decs.components.the_void.player1.radar_contacts.1"
             );
+
+            subject = "call.decs.shard.the_void.set";
+            req = ResProtocolRequest::from(subject);
+            assert_eq!(req, ResProtocolRequest::Set("decs.shard.the_void".into()));
+            assert_eq!(req.to_string(), "call.decs.shard.the_void.set");
+
+            subject = "call.decs.shard.the_void.incr";
+            req = ResProtocolRequest::from(subject);
+            assert_eq!(
+                req,
+                ResProtocolRequest::Call("decs.shard.the_void".into(), "incr".into())
+            );
+            assert_eq!(req.to_string(), "call.decs.shard.the_void.incr");
         }
     }
 }
@@ -174,6 +209,7 @@ pub mod shard {
     pub struct Shard {
         pub name: String,
         pub capacity: u32,
+        #[serde(default)]
         pub current: u32,
     }
 

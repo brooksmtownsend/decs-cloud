@@ -105,7 +105,7 @@ services:
       - "RUST_LOG=info,cranelift_wasm=warn"
       - "NATS_URL=nats://nats:4222"         
       - "REDIS_URL=redis://redis:6379"  
-      - "NATS_SUBSCRIPTION=get.decs.shard.*,get.decs.shards,access.decs.shard.*,access.decs.shards,call.decs.shard.*.set"
+      - "NATS_SUBSCRIPTION=get.decs.shard.*,get.decs.shards,access.decs.shard.*,access.decs.shards,call.decs.shard.*.*"
   component_mgr:
     image: 'decscloud/component_mgr'  
     expose:
