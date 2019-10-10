@@ -218,9 +218,8 @@ fn handle_model_set(
     ));
     let existed = store::put_component(ctx, rid, &serde_json::to_string(&comp)?)?;
     if !existed {
-        let tokens: Vec<&str> = rid.split('.').collect();
-        let shard = tokens[2]; // decs.components.(shard).(entity)...
-        publish_update_shard(ctx, shard, 1)?;
+        let shard = shard_from_rid(rid);
+        publish_update_shard(ctx, &shard, 1)?;
     }
     publish_model_change(ctx, comp, rid)?;
     if !msg.reply_to.is_empty() {
@@ -252,6 +251,7 @@ fn publish_collection_add(
     idx: usize,
 ) -> Result<()> {
     let subject = format!("event.{}.add", rid);
+    let shard = shard_from_rid(rid);
 
     let resid = decs::gateway::ResourceIdentifier {
         rid: item_rid.to_string(),
@@ -263,11 +263,13 @@ fn publish_collection_add(
     ctx.log(&format!("Publishing Collection Add, subject: {}", subject));
     ctx.msg()
         .publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    publish_update_shard(ctx, &shard, 1)?; // increment component count by 1
     Ok(())
 }
 
 fn publish_collection_remove(ctx: &CapabilitiesContext, rid: &str, idx: usize) -> Result<()> {
     let subject = format!("event.{}.remove", rid);
+    let shard = shard_from_rid(rid);
     let out = json!({ "idx": idx });
     ctx.log(&format!(
         "Publishing collection remove, subject: {}, idx: {}",
@@ -275,6 +277,7 @@ fn publish_collection_remove(ctx: &CapabilitiesContext, rid: &str, idx: usize) -
     ));
     ctx.msg()
         .publish(&subject, None, &serde_json::to_vec(&out)?)?;
+    publish_update_shard(ctx, &shard, -1)?; // decrement component count by 1
     Ok(())
 }
 
@@ -296,6 +299,12 @@ fn extract_model_from_set(body: &[u8]) -> Result<serde_json::Value> {
     let v: serde_json::Value = serde_json::from_slice(body)?;
     let comp = &v["params"];
     Ok(comp.clone())
+}
+
+// decs.components.(shard).(entity).x.y
+fn shard_from_rid(rid: &str) -> String {
+    let tokens: Vec<&str> = rid.split('.').collect();
+    tokens[2].to_string()
 }
 
 #[cfg(test)]
