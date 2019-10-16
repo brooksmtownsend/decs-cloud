@@ -28,7 +28,7 @@ pub(crate) fn component_type(ctx: &CapabilitiesContext, rid: &str) -> Result<Com
 }
 
 pub(crate) fn get_collection_rids(ctx: &CapabilitiesContext, rid: &str) -> Result<Vec<String>> {
-    ctx.kv().set_members(&rid.replace('.', ":"))
+    ctx.kv().list_range(&rid.replace('.', ":"), 0, -1)
 }
 
 /// Stores a single component value
@@ -62,8 +62,11 @@ pub(crate) fn add_component_to_collection(
     let new_rid = format!("{}.{}", rid, id);
 
     // add to the collection (the component key)
+    let mut num_added = 0;
     ctx.kv().set(&typekey, TYPE_COLLECTION, None)?;
-    let num_added = ctx.kv().set_add(&key, &new_rid)?;
+    if !ctx.kv().exists(&new_rid)? {
+        num_added = ctx.kv().list_add(&key, &new_rid)?;
+    }
 
     ctx.log(&format!("Adding '{}' to set '{}'", new_rid, key));
 
@@ -73,8 +76,9 @@ pub(crate) fn add_component_to_collection(
     ctx.kv().set(&ridkey, component, None)?;
     ctx.kv().set(&ridtypekey, TYPE_MODEL, None)?;
 
-    ctx.kv().set_add(&entkey, &entity_id(&tokens))?; // add entity to list of entities with a given component
-    let members = ctx.kv().set_members(&key)?;
+    ctx.kv().set_add(&entkey, &entity_id(&tokens))?; // add entity to the set of entities with a given component
+
+    let members = ctx.kv().list_range(&key, 0, 1000)?;
     if num_added == 0 {
         Ok((
             members
@@ -84,16 +88,13 @@ pub(crate) fn add_component_to_collection(
             new_rid.clone(),
         ))
     } else {
-        Ok((members.len() - 1, new_rid.clone())) // new item was added to the end
+        Ok((0, new_rid.clone())) // new item was added to the beginning
     }
 }
 
 fn index_of(ctx: &CapabilitiesContext, setkey: &str, item: &str) -> Result<usize> {
-    let members = ctx.kv().set_members(&setkey)?;
-    Ok(members
-        .iter()
-        .position(|s| *s == item)
-        .unwrap_or_else(|| members.len() - 1))
+    let members = ctx.kv().list_range(&setkey, 0, -1)?;
+    Ok(members.iter().position(|s| *s == item).unwrap_or_else(|| 0))
 }
 
 pub(crate) fn get_component(
@@ -141,8 +142,8 @@ pub(crate) fn remove_component_from_collection(
         item_rid, key
     ));
     let idx = index_of(ctx, &key, item_rid)?;
-    let remcount = ctx.kv().set_remove(&key, item_rid)?;
-    ctx.log(&format!("Removed {} items from set.", remcount));
+    let remcount = ctx.kv().list_del_item(&key, item_rid)?;
+    ctx.log(&format!("Removed {} items from list.", remcount));
     ctx.kv().del_key(&item_key)?;
     ctx.kv().del_key(&item_type_key)?;
 
