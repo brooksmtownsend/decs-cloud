@@ -78,7 +78,7 @@ pub(crate) fn add_component_to_collection(
 
     ctx.kv().set_add(&entkey, &entity_id(&tokens))?; // add entity to the set of entities with a given component
 
-    let members = ctx.kv().list_range(&key, 0, 1000)?;
+    let members = ctx.kv().list_range(&key, 0, -1)?;
     if num_added == 0 {
         Ok((
             members
