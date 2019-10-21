@@ -102,9 +102,9 @@ fn handle_gameloop(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) ->
 
 fn handle_registration(ctx: &CapabilitiesContext, msg: &messaging::BrokerMessage) -> CallResult {
     let system: codec::systemmgr::System = serde_json::from_slice(&msg.body)?;
-    let existed = store::put_system(ctx, &system)?;
+    let (existed, idx) = store::put_system(ctx, &system)?;
     if !existed {
-        publish_collection_add(ctx, &system)?;
+        publish_collection_add(ctx, &system, idx)?;
     } else {
         publish_model_change(ctx, &system)?;
     }
@@ -181,14 +181,14 @@ fn should_publish(framerate: u32, elapsed_ms: u32, seq_no: u64) -> bool {
     seq_no % u64::from(system_modulus(framerate, elapsed_ms)) == 0
 }
 
-fn publish_collection_add(ctx: &CapabilitiesContext, system: &System) -> Result<()> {
+fn publish_collection_add(ctx: &CapabilitiesContext, system: &System, idx: usize) -> Result<()> {
     let subject = "event.decs.systems.add";
     let item = format!("decs.system.{}", system.name);
 
     let rid = ResourceIdentifier { rid: item };
     let out = json!({
         "value" : rid,
-        "idx": 0
+        "idx": idx
     });
     ctx.log(&format!("Publishing Collection Add, subject: {}", subject));
     ctx.msg()
@@ -200,7 +200,11 @@ fn publish_model_change(ctx: &CapabilitiesContext, system: &System) -> Result<()
     let item = format!("decs.system.{}", system.name);
     let subject = format!("event.{}.change", item);
 
-    let out = json!({ "values": system });
+    let out = json!({ "values": {
+        "components": system.components.join(","),
+        "framerate": system.framerate,
+        "name" : system.name
+    }});
     ctx.log(&format!("Publishing Model Change, subject: {}", subject));
     ctx.msg()
         .publish(&subject, None, &serde_json::to_vec(&out)?)?;

@@ -8,17 +8,27 @@ pub(crate) const SYSTEMS_KEY: &str = "decs:systems";
 pub(crate) fn put_system(
     ctx: &CapabilitiesContext,
     system: &codec::systemmgr::System,
-) -> guest::wapc::Result<bool> {
+) -> guest::wapc::Result<(bool,usize)> {
     let system_json = serde_json::to_string(system)?;
+    let key = format!("system:{}", system.name);
+    let existed = ctx.kv().exists(&key)?;
 
-    let new_count = ctx.kv().set_add(SYSTEMS_KEY, &system.name)?;
+    if !existed {    
+        ctx.kv().list_add(SYSTEMS_KEY, &system.name)?;
+    }    
     ctx.kv()
-        .set(&format!("system:{}", system.name), &system_json, None)?;
-    Ok(new_count == 0)
+        .set(&key, &system_json, None)?;
+    Ok((existed, index_of(ctx, SYSTEMS_KEY, &system.name)?))
 }
 
 pub(crate) fn get_systems(ctx: &CapabilitiesContext) -> Result<Vec<String>> {
-    ctx.kv().set_members(SYSTEMS_KEY)
+    ctx.kv().list_range(SYSTEMS_KEY, 0, -1)
+}
+
+
+fn index_of(ctx: &CapabilitiesContext, listkey: &str, item: &str) -> Result<usize> {
+    let members = ctx.kv().list_range(&listkey, 0, -1)?;
+    Ok(members.iter().position(|s| *s == item).unwrap_or_else(|| 0))
 }
 
 pub(crate) fn get_system_list(

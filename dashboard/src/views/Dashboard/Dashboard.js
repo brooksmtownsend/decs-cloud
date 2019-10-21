@@ -3,24 +3,15 @@ import { Bar, Line } from 'react-chartjs-2';
 import {
   Badge,
   Button,
-  ButtonDropdown,
-  ButtonGroup,
-  ButtonToolbar,
+
   Card,
   CardBody,
-  CardFooter,
   CardHeader,
-  CardTitle,
   Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-  Progress,
   Row,
-  Table,
 } from 'reactstrap';
 import ShardList from './ShardList';
+import SystemList from './SystemList';
 import { CustomTooltips } from '@coreui/coreui-plugin-chartjs-custom-tooltips';
 import { getStyle, hexToRgba } from '@coreui/coreui-pro/dist/js/coreui-utilities'
 
@@ -468,7 +459,7 @@ class Dashboard extends Component {
     this.state = {
       dropdownOpen: false,
       radioSelected: 2,
-      systems: [],
+      systems: null,
       shards: null
     };
   }
@@ -479,6 +470,7 @@ class Dashboard extends Component {
 
   componentDidMount() {
     this.getShards();
+    this.getSystems();
   }
 
   getShards() {
@@ -487,7 +479,17 @@ class Dashboard extends Component {
       shards.on('remove', this.onUpdate)
       this.setState({ shards })
     }).catch(err => {
-      console.log(err)        
+      console.log(err)
+    })
+  }
+
+  getSystems() {
+    client.get('decs.systems').then(systems => {
+      systems.on('add', this.onUpdate)
+      systems.on('remove', this.onUpdate)
+      this.setState({ systems })
+    }).catch(err => {
+      console.log(err)
     })
   }
 
@@ -510,115 +512,25 @@ class Dashboard extends Component {
     return (
       <div className="animated fadeIn">
         <Row>
-          <Col xs="12" sm="6" lg="3">
-            <Card className="text-white bg-info">
-              <CardBody className="pb-0">
-                <ButtonGroup className="float-right">
-                  <ButtonDropdown id='card1' isOpen={this.state.card1} toggle={() => { this.setState({ card1: !this.state.card1 }); }}>
-                    <DropdownToggle caret className="p-0" color="transparent">
-                      <i className="icon-settings"></i>
-                    </DropdownToggle>
-                    <DropdownMenu right>
-                      <DropdownItem>Action</DropdownItem>
-                      <DropdownItem>Another action</DropdownItem>
-                      <DropdownItem disabled>Disabled action</DropdownItem>
-                      <DropdownItem>Something else here</DropdownItem>
-                    </DropdownMenu>
-                  </ButtonDropdown>
-                </ButtonGroup>
-                <div className="text-value">Physics</div>
-                <div>1 FPS</div>
-                <div>position, location</div>
-                <div className="chart-wrapper mt-3" style={{ height: '70px' }}>
-                  <Line data={cardChartData2} options={cardChartOpts2} height={70} />
-                </div>
-              </CardBody>
-            </Card>
+          <Col>
+
+            {
+              this.state.systems ?
+                <SystemList systems={this.state.systems}></SystemList>
+                : null
+            }
+
           </Col>
 
-          <Col xs="12" sm="6" lg="3">
-            <Card className="text-white bg-primary">
-              <CardBody className="pb-0">
-                <ButtonGroup className="float-right">
-                  <Dropdown id='card2' isOpen={this.state.card2} toggle={() => { this.setState({ card2: !this.state.card2 }); }}>
-                    <DropdownToggle className="p-0" color="transparent">
-                      <i className="icon-location-pin"></i>
-                    </DropdownToggle>
-                    <DropdownMenu right>
-                      <DropdownItem>Action</DropdownItem>
-                      <DropdownItem>Another action</DropdownItem>
-                      <DropdownItem>Something else here</DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                </ButtonGroup>
-                <div className="text-value">Radar</div>
-                <div>1 FPS</div>
-                <div>radar_receiver, radar_transponder</div>
-                <div className="chart-wrapper mt-3" style={{ height: '70px' }}>
-                  <Line data={cardChartData1} options={cardChartOpts1} height={70} />
-                </div>
-              </CardBody>
-            </Card>
-          </Col>
-
-          <Col xs="12" sm="6" lg="3">
-            <Card className="text-white bg-warning">
-              <CardBody className="pb-0">
-                <ButtonGroup className="float-right">
-                  <Dropdown id='card3' isOpen={this.state.card3} toggle={() => { this.setState({ card3: !this.state.card3 }); }}>
-                    <DropdownToggle caret className="p-0" color="transparent">
-                      <i className="icon-settings"></i>
-                    </DropdownToggle>
-                    <DropdownMenu right>
-                      <DropdownItem>Action</DropdownItem>
-                      <DropdownItem>Another action</DropdownItem>
-                      <DropdownItem>Something else here</DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                </ButtonGroup>
-                <div className="text-value">Navigation</div>
-                <div>1 FPS</div>
-                <div>target, position, velocity</div>
-              </CardBody>
-              <div className="chart-wrapper mt-3" style={{ height: '70px' }}>
-                <Line data={cardChartData3} options={cardChartOpts3} height={70} />
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs="12" sm="6" lg="3">
-            <Card className="text-white bg-danger">
-              <CardBody className="pb-0">
-                <ButtonGroup className="float-right">
-                  <ButtonDropdown id='card4' isOpen={this.state.card4} toggle={() => { this.setState({ card4: !this.state.card4 }); }}>
-                    <DropdownToggle caret className="p-0" color="transparent">
-                      <i className="icon-settings"></i>
-                    </DropdownToggle>
-                    <DropdownMenu right>
-                      <DropdownItem>Action</DropdownItem>
-                      <DropdownItem>Another action</DropdownItem>
-                      <DropdownItem>Something else here</DropdownItem>
-                    </DropdownMenu>
-                  </ButtonDropdown>
-                </ButtonGroup>
-                <div className="text-value">Mining</div>
-                <div>1 FPS</div>
-                <div>mine_site</div>
-              </CardBody>
-              <div className="chart-wrapper mt-3 mx-3" style={{ height: '70px' }}>
-                <Bar data={cardChartData4} options={cardChartOpts4} height={70} />
-              </div>
-            </Card>
-          </Col>
         </Row>
 
-    {
-      this.state.shards ?
-        <ShardList shards={this.state.shards}></ShardList>
-      : null
-    }
-        
-        
+        {
+          this.state.shards ?
+            <ShardList shards={this.state.shards}></ShardList>
+            : null
+        }
+
+
         <Row>
           <Col>
             <Card>
@@ -650,7 +562,7 @@ class Dashboard extends Component {
                         </div>
                       </Col>
                     </Row>
-                    </Col>
+                  </Col>
                   <Col xs="12" md="6" xl="6">
                     <Row>
                       <Col sm="6">
@@ -673,10 +585,10 @@ class Dashboard extends Component {
                           </div>
                         </div>
                       </Col>
-                    </Row>                                      
+                    </Row>
                   </Col>
                 </Row>
-                
+
               </CardBody>
             </Card>
           </Col>
