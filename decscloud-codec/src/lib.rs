@@ -5,7 +5,7 @@ extern crate serde_derive;
 extern crate serde_json;
 
 pub mod gateway {
-    #[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
+    #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
     pub struct ResourceIdentifier {
         /// The resource ID
         pub rid: String,
