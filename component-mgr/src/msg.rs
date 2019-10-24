@@ -1,6 +1,6 @@
 use crate::store;
 use codec::gateway::ResProtocolRequest;
-use decscloud_codec as codec;
+use decscloud_common as codec;
 use guest::prelude::*;
 
 // get.decs.components.{shard-id}.{entity-id}.{component-name}

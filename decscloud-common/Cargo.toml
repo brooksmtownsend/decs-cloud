@@ -1,0 +1,27 @@
+[package]
+name = "decscloud-common"
+version = "0.0.1"
+authors = ["Waxosuit Team <alothien@gmail.com>"]
+edition = "2018"
+description = "Set of types and helpers common to dECS Cloud projects"
+license = "Apache-2.0"
+homepage = "https://decscloud.online"
+documentation = "https://docs.rs/decscloud-common"
+readme = "README.md"
+keywords = ["sdk", "wapc", "webassembly", "wasm", "waxosuit"]
+categories = ["wasm", "api-bindings", "game-engines"]
+
+[badges]
+travis-ci = { repository = "waxosuit/decs-cloud", branch = "master" }
+
+
+[dependencies]
+prost = "0.5.0"
+bytes = "0.4.12"
+prost-types = "0.5.0"
+serde = "1.0.101"
+serde_json = "1.0.41"
+serde_derive = "1.0.101"
+
+[build-dependencies]
+prost-build = "0.5.0"

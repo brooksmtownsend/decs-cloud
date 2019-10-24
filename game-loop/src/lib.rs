@@ -14,7 +14,7 @@
 
 extern crate waxosuit_guest as guest;
 
-use decscloud_codec as decs;
+use decscloud_common as decs;
 use guest::prelude::*;
 
 call_handler!(handle_call);

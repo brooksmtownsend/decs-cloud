@@ -8,8 +8,8 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-waxosuit-guest = "0.3.2"
-decscloud-codec = { path = "../decscloud-codec" }
+waxosuit-guest = "0.3.5"
+decscloud-common = { path = "../decscloud-common" }
 serde = "1.0.101"
-serde_json = "1.0.40"
+serde_json = "1.0.41"
 serde_derive = "1.0.101"

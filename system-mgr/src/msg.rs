@@ -9,9 +9,9 @@
 //!
 
 use crate::store;
-use decscloud_codec as codec;
-use decscloud_codec::gateway::ResourceIdentifier;
-use decscloud_codec::systemmgr::System;
+use codec::gateway::ResourceIdentifier;
+use codec::systemmgr::System;
+use decscloud_common as codec;
 use guest::prelude::*;
 
 const PING_EVERY_TICKS: i64 = 200;

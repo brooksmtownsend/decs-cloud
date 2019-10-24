@@ -6,7 +6,7 @@ members = [
     "shard-mgr",
     "game-loop",
     "component-mgr",
-    "decscloud-codec"    
+    "decscloud-common"    
 ]
 
 [profile.release]

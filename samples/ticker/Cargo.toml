@@ -10,8 +10,8 @@ crate-type = ["cdylib"]
 [workspace]
 
 [dependencies]
-waxosuit-guest = "0.3.2"
-decscloud-codec = { path = "../../decscloud-codec" }
+waxosuit-guest = "0.3.5"
+decscloud-common = { path = "../../decscloud-common" }
 
 [profile.release]
 # Optimize for small code size

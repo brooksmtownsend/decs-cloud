@@ -6,7 +6,7 @@ extern crate log;
 
 use codec::capabilities::{CapabilityProvider, Dispatcher, NullDispatcher};
 use crossbeam_channel::tick;
-use decscloud_codec as decs;
+use decscloud_common as decs;
 use prost::Message;
 use std::cmp;
 use std::error::Error;
