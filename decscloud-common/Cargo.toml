@@ -8,7 +8,7 @@ license = "Apache-2.0"
 homepage = "https://decscloud.online"
 documentation = "https://docs.rs/decscloud-common"
 readme = "README.md"
-keywords = ["sdk", "wapc", "webassembly", "wasm", "waxosuit"]
+keywords = ["sdk", "wapc", "webassembly", "wasm", "waxosuit", "decs", "ecs"]
 categories = ["wasm", "api-bindings", "game-engines"]
 
 [badges]
