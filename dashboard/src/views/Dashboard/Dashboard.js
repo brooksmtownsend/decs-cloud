@@ -17,8 +17,7 @@ import { getStyle, hexToRgba } from '@coreui/coreui-pro/dist/js/coreui-utilities
 
 import ResClient from 'resclient';
 
-const client = new ResClient('ws://localhost:8080')
-
+const client = new ResClient('/resgate')
 
 const Widget03 = lazy(() => import('../../views/Widgets/Widget03'));
 
