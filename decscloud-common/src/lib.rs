@@ -52,6 +52,7 @@ pub mod gateway {
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
     pub enum ResProtocolRequest {
         Get(String),
+        Add(String),
         New(String),
         Set(String),
         Delete(String),
@@ -64,6 +65,7 @@ pub mod gateway {
         fn to_string(&self) -> String {
             match self {
                 ResProtocolRequest::Get(resid) => format!("get.{}", resid),
+                ResProtocolRequest::Add(resid) => format!("call.{}.add", resid),
                 ResProtocolRequest::New(resid) => format!("call.{}.new", resid),
                 ResProtocolRequest::Set(resid) => format!("call.{}.set", resid),
                 ResProtocolRequest::Delete(resid) => format!("call.{}.delete", resid),
@@ -80,6 +82,8 @@ pub mod gateway {
                 ResProtocolRequest::Get(source[4..].to_string())
             } else if source.starts_with("call.") && source.ends_with(".new") {
                 ResProtocolRequest::New(source[5..=source.len() - 5].to_string())
+            } else if source.starts_with("call.") && source.ends_with(".add") {
+                ResProtocolRequest::Add(source[5..=source.len() - 5].to_string())            
             } else if source.starts_with("call.") && source.ends_with(".set") {
                 ResProtocolRequest::Set(source[5..=source.len() - 5].to_string())
             } else if source.starts_with("access.") {
@@ -134,6 +138,18 @@ pub mod timer {
                 shard: shard.to_string(),
             }
         }
+    }
+}
+
+pub mod users {
+//! Support for User data serialization
+
+    /// Represents a game user
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct User {
+        pub email: String,
+        pub pass: String,
+        pub id: String
     }
 }
 
@@ -265,5 +281,10 @@ mod test {
             ResProtocolRequest::Call("decs.shard.the_void".into(), "incr".into())
         );
         assert_eq!(req.to_string(), "call.decs.shard.the_void.incr");
+
+        subject = "call.decs.users.add";
+        req = ResProtocolRequest::from(subject);
+        assert_eq!(req, ResProtocolRequest::Add("decs.users".into()));
+        assert_eq!(req.to_string(), "call.decs.users.add");
     }
 }

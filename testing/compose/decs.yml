@@ -106,6 +106,24 @@ services:
       - "NATS_URL=nats://nats:4222"         
       - "REDIS_URL=redis://redis:6379"  
       - "NATS_SUBSCRIPTION=get.decs.shard.*,get.decs.shards,access.decs.shard.*,access.decs.shards,call.decs.shard.*.*"
+  user_mgr:
+    image: 'decscloud/user_mgr'
+    expose:
+      - "9005"
+    ports:
+      - "9005:9005"
+    links:
+      - nats
+      - redis
+    depends_on:
+      - nats
+      - redis
+    environment:
+      - "PORT=9005"
+      - "RUST_LOG=info,cranelift_wasm=warn"
+      - "REDIS_URL=redis://redis:6379"
+      - "NATS_URL=nats://nats:4222"
+      - "NATS_SUBSCRIPTION=get.decs.users,get.decs.user.*,access.decs.users,access.decs.user.*,call.decs.user.*.*,call.decs.users.add"
   component_mgr:
     image: 'decscloud/component_mgr'  
     expose:
