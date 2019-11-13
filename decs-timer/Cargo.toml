@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 waxosuit-codec = "0.2.1"
-decscloud-codec = { path = "../decscloud-codec" }
+decscloud-common = { path = "../decscloud-common" }
 log = "0.4.8"
 env_logger = "0.6"
 crossbeam-channel = "0.3.9"

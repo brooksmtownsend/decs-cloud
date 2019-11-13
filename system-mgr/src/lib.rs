@@ -20,7 +20,7 @@ extern crate waxosuit_guest as guest;
 #[macro_use]
 extern crate serde_json;
 
-use decscloud_codec as codec;
+use decscloud_common as codec;
 use guest::prelude::*;
 
 mod msg;

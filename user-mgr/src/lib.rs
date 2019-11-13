@@ -12,23 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # User Manager
+//!
+//! The user manager is responsible for typical CRUD activities
+//! related to users. Query is exposed via RES protocol
 extern crate waxosuit_guest as guest;
 
-use decscloud_common as decs;
+#[macro_use]
+extern crate serde_json;
+
 use guest::prelude::*;
+
+mod msg;
+mod store;
 
 call_handler!(handle_call);
 
 pub fn handle_call(ctx: &CapabilitiesContext, operation: &str, msg: &[u8]) -> CallResult {
     match operation {
-        decs::timer::OP_TIMER_TICK => tick(ctx, msg),
+        messaging::OP_DELIVER_MESSAGE => msg::handle_message(ctx, msg),
         core::OP_HEALTH_REQUEST => Ok(vec![]),
         _ => Err("bad dispatch".into()),
     }
-}
-
-fn tick(ctx: &CapabilitiesContext, tick: impl Into<decs::timer::TimerTick>) -> CallResult {
-    let tick = tick.into();
-    ctx.log(&format!("Timer tick : {:?}", tick));
-    Ok(vec![])
 }

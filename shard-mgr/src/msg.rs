@@ -9,9 +9,9 @@
 //!
 
 use crate::store;
-use decscloud_codec as codec;
-use decscloud_codec::gateway::{ResProtocolRequest, ResourceIdentifier};
-use decscloud_codec::shard::Shard;
+use decscloud_common as codec;
+use decscloud_common::gateway::{ResProtocolRequest, ResourceIdentifier};
+use decscloud_common::shard::Shard;
 use guest::prelude::*;
 
 /// Examine the subject of the message and invoke the appopriate function

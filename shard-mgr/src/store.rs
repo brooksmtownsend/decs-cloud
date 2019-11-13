@@ -1,5 +1,5 @@
-use decscloud_codec as codec;
-use decscloud_codec::shard::Shard;
+use decscloud_common as codec;
+use decscloud_common::shard::Shard;
 use guest::prelude::*;
 
 const SHARDS_KEY: &str = "decs:shards";

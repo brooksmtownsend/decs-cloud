@@ -4,9 +4,10 @@ members = [
     "decs-timer",
     "system-mgr", 
     "shard-mgr",
+    "user-mgr",
     "game-loop",
     "component-mgr",
-    "decscloud-codec"    
+    "decscloud-common"    
 ]
 
 [profile.release]

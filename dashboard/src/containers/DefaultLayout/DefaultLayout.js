@@ -6,13 +6,6 @@ import {
   AppAside,
   AppBreadcrumb,
   AppFooter,
-  AppHeader,
-  AppSidebar,
-  AppSidebarFooter,
-  AppSidebarForm,
-  AppSidebarHeader,
-  AppSidebarMinimizer,
-  AppSidebarNav,
 } from '@coreui/react';
 // sidebar nav config
 import navigation from '../../_nav';
@@ -33,22 +26,8 @@ class DefaultLayout extends Component {
 
   render() {
     return (
-      <div className="app">
-        <AppHeader fixed>
-          <Suspense fallback={this.loading()}>
-            <DefaultHeader onLogout={e=>this.signOut(e)}/>
-          </Suspense>
-        </AppHeader>
+      <div className="app">        
         <div className="app-body">
-          <AppSidebar fixed display="lg">
-            <AppSidebarHeader />
-            <AppSidebarForm />
-            <Suspense>
-            <AppSidebarNav navConfig={navigation} {...this.props} />
-            </Suspense>
-            <AppSidebarFooter />
-            <AppSidebarMinimizer />
-          </AppSidebar>
           <main className="main">
             <AppBreadcrumb appRoutes={routes}/>
             <Container fluid>
