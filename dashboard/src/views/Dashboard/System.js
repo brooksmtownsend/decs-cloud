@@ -1,18 +1,8 @@
 import React, { Component } from 'react';
-import {
-    ButtonDropdown,
-    ButtonGroup,
-    ButtonToolbar,
-    Dropdown,
-    DropdownItem,
-    DropdownMenu,
-    DropdownToggle,
+import {    
     Card,
     CardBody,
-    CardHeader,
-    Col,
-    Progress,
-    Row
+    CardHeader    
 } from 'reactstrap';
 
 

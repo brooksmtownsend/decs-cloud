@@ -1,11 +1,6 @@
 import React, { Component } from 'react';
-import {    
-    Card,
-    CardBody,    
-    CardHeader,    
-    Col,    
-    Progress,
-    Row    
+import {        
+    Progress,    
   } from 'reactstrap';
 
 
@@ -34,7 +29,7 @@ class Shard extends Component {
                 <span className="ml-auto font-weight-bold">{this.props.shard.current} <span className="text-muted small">({(this.props.shard.current/this.props.shard.capacity)*100}%)</span></span>  
                 </div>
                 <div className="progress-group-bars">
-                <Progress className="progress-xs" color="success" value={(this.props.shard.current/this.props.shard.capacity)*100} />
+                <Progress className="progress-xs" color="success" value={((this.props.shard.current/this.props.shard.capacity)*100).toPrecision(3)} />
                 </div>
             </div>
         )
