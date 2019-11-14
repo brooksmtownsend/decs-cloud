@@ -26,13 +26,7 @@ class SystemList extends Component {
   render() {
     // ResClient Collections are iterables, but not arrays.
     return (
-      <Row>
-        <Col>
-          <Card>
-            <CardHeader>
-              Systems
-              </CardHeader>
-            <CardBody>
+     
               <Row>
 
                 {this.props.systems && Array.from(this.props.systems).map(system =>
@@ -40,10 +34,7 @@ class SystemList extends Component {
                 )}
 
               </Row>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+     
     );
   }
 }
