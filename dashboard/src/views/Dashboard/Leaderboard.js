@@ -27,7 +27,7 @@ class Leaderboard extends Component {
         return (
 
             <Row>
-                <Col>                    
+                <Col>
                     <Table responsive>
                         <thead>
                             <tr>
@@ -36,11 +36,11 @@ class Leaderboard extends Component {
                             </tr>
                         </thead>
                         <tbody>
-                            {this.props.lbitems && Array.from(this.props.lbitems).map(score =>
+                            {this.props.items && Array.from(this.props.items).map(score =>
                                 <ScoreEntry key={score.player} score={score} />
-                            )}                    
+                            )}
                         </tbody>
-                    </Table>                    
+                    </Table>
                 </Col>
             </Row>
         );
