@@ -13,7 +13,7 @@ import LeaderBoard from './Leaderboard';
 import ResClient from 'resclient';
 
 const client = new ResClient('/resgate')
-//const client = new ResClient("ws://localhost:8080/resgate");
+// const client = new ResClient("ws://localhost:8080");
 
 class Dashboard extends Component {
   constructor(props) {
@@ -46,6 +46,7 @@ class Dashboard extends Component {
       lbitems.on('add', this.onUpdate);
       lbitems.on('remove', this.onUpdate);
       this.setState({ lbitems })
+      console.log(this.state.lbitems)
     }).catch(err => {
       console.log(err)
     })
@@ -134,26 +135,26 @@ class Dashboard extends Component {
         </Row>
 
         <Row>
-        <Col>
-          <Card>
-            <CardHeader>
-              Leaderboard - mainworld
+          <Col>
+            <Card>
+              <CardHeader>
+                Leaderboard - mainworld
               </CardHeader>
-            <CardBody>
-              <Row>
-                <Col>
+              <CardBody>
+                <Row>
+                  <Col>
                     {
                       this.state.lbitems ?
-                         <LeaderBoard items={this.state.lbitems}></LeaderBoard>
-                         :null
+                        <LeaderBoard items={this.state.lbitems} client={client}></LeaderBoard>
+                        : null
                     }
-                </Col>
-              </Row>
-            
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+                  </Col>
+                </Row>
+
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
 
 
       </div>

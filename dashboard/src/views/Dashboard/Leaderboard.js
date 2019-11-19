@@ -37,7 +37,7 @@ class Leaderboard extends Component {
                         </thead>
                         <tbody>
                             {this.props.items && Array.from(this.props.items).map(score =>
-                                <ScoreEntry key={score.player} score={score} />
+                                <ScoreEntry key={score.player} score={score} client={this.props.client} />
                             )}
                         </tbody>
                     </Table>
